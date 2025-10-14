@@ -1,5 +1,5 @@
-use crate::auth::types::config::AuthenticationConfig;
-use crate::auth::types::interface::SetAuthenticationConfig;
+use crate::types::config::AuthenticationConfig;
+use crate::types::interface::SetAuthenticationConfig;
 use ic_cdk::api::time;
 use junobuild_shared::types::state::{Timestamp, Version, Versioned};
 use junobuild_shared::version::next_version;
@@ -22,6 +22,7 @@ impl AuthenticationConfig {
 
         AuthenticationConfig {
             internet_identity: user_config.internet_identity.clone(),
+            openid: user_config.openid.clone(),
             rules: user_config.rules.clone(),
             created_at: Some(created_at),
             updated_at: Some(updated_at),
@@ -33,5 +34,13 @@ impl AuthenticationConfig {
 impl Versioned for AuthenticationConfig {
     fn version(&self) -> Option<Version> {
         self.version
+    }
+}
+
+impl AuthenticationConfig {
+    pub fn openid_enabled(&self) -> bool {
+        self.openid
+            .as_ref()
+            .map_or(false, |openid| !openid.providers.is_empty())
     }
 }

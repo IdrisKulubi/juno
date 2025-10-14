@@ -1,7 +1,9 @@
 #![deny(clippy::disallowed_methods)]
 
 mod api;
+mod auth;
 mod cdn;
+mod certification;
 mod constants;
 mod factory;
 mod guards;
@@ -20,6 +22,8 @@ use crate::types::state::Payments;
 use candid::Principal;
 use ic_cdk_macros::export_candid;
 use ic_ledger_types::Tokens;
+use junobuild_auth::types::config::AuthenticationConfig;
+use junobuild_auth::types::interface::SetAuthenticationConfig;
 use junobuild_cdn::proposals::CommitProposal;
 use junobuild_cdn::proposals::ListProposalResults;
 use junobuild_cdn::proposals::ListProposalsParams;

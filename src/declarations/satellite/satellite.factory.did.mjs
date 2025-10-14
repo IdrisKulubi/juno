@@ -1,5 +1,11 @@
 // @ts-ignore
 export const idlFactory = ({ IDL }) => {
+	const Memory = IDL.Variant({ Heap: IDL.Null, Stable: IDL.Null });
+	const InitStorageArgs = IDL.Record({ system_memory: IDL.Opt(Memory) });
+	const InitSatelliteArgs = IDL.Record({
+		controllers: IDL.Vec(IDL.Principal),
+		storage: IDL.Opt(InitStorageArgs)
+	});
 	const CommitBatch = IDL.Record({
 		batch_id: IDL.Nat,
 		headers: IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text)),
@@ -83,6 +89,11 @@ export const idlFactory = ({ IDL }) => {
 		created_at: IDL.Nat64,
 		version: IDL.Opt(IDL.Nat64)
 	});
+	const OpenIdProvider = IDL.Variant({ Google: IDL.Null });
+	const OpenIdProviderConfig = IDL.Record({ client_id: IDL.Text });
+	const AuthenticationConfigOpenId = IDL.Record({
+		providers: IDL.Vec(IDL.Tuple(OpenIdProvider, OpenIdProviderConfig))
+	});
 	const AuthenticationConfigInternetIdentity = IDL.Record({
 		derivation_origin: IDL.Opt(IDL.Text),
 		external_alternative_origins: IDL.Opt(IDL.Vec(IDL.Text))
@@ -92,6 +103,7 @@ export const idlFactory = ({ IDL }) => {
 	});
 	const AuthenticationConfig = IDL.Record({
 		updated_at: IDL.Opt(IDL.Nat64),
+		openid: IDL.Opt(AuthenticationConfigOpenId),
 		created_at: IDL.Opt(IDL.Nat64),
 		version: IDL.Opt(IDL.Nat64),
 		internet_identity: IDL.Opt(AuthenticationConfigInternetIdentity),
@@ -174,7 +186,6 @@ export const idlFactory = ({ IDL }) => {
 		version: IDL.Opt(IDL.Nat64),
 		proposal_type: ProposalType
 	});
-	const Memory = IDL.Variant({ Heap: IDL.Null, Stable: IDL.Null });
 	const Permission = IDL.Variant({
 		Controllers: IDL.Null,
 		Private: IDL.Null,
@@ -283,6 +294,7 @@ export const idlFactory = ({ IDL }) => {
 	});
 	const MemorySize = IDL.Record({ stable: IDL.Nat64, heap: IDL.Nat64 });
 	const SetAuthenticationConfig = IDL.Record({
+		openid: IDL.Opt(AuthenticationConfigOpenId),
 		version: IDL.Opt(IDL.Nat64),
 		internet_identity: IDL.Opt(AuthenticationConfigInternetIdentity),
 		rules: IDL.Opt(AuthenticationRules)
@@ -422,5 +434,11 @@ export const idlFactory = ({ IDL }) => {
 };
 // @ts-ignore
 export const init = ({ IDL }) => {
-	return [];
+	const Memory = IDL.Variant({ Heap: IDL.Null, Stable: IDL.Null });
+	const InitStorageArgs = IDL.Record({ system_memory: IDL.Opt(Memory) });
+	const InitSatelliteArgs = IDL.Record({
+		controllers: IDL.Vec(IDL.Principal),
+		storage: IDL.Opt(InitStorageArgs)
+	});
+	return [InitSatelliteArgs];
 };
