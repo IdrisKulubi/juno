@@ -1,8 +1,8 @@
 import { idlFactorySatellite, type SatelliteActor, type SatelliteDid } from '$declarations';
-import { Ed25519KeyIdentity } from '@dfinity/identity';
 import { PocketIc, type Actor } from '@dfinity/pic';
-import type { Principal } from '@dfinity/principal';
 import { toNullable } from '@dfinity/utils';
+import { Ed25519KeyIdentity } from '@icp-sdk/core/identity';
+import type { Principal } from '@icp-sdk/core/principal';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { inject } from 'vitest';
@@ -43,7 +43,7 @@ describe('Satellite > Index HTML', () => {
 		const { http_request } = actor;
 
 		const { body } = await http_request({
-			body: [],
+			body: Uint8Array.from([]),
 			certificate_version: toNullable(),
 			headers: [],
 			method: 'GET',
@@ -51,7 +51,7 @@ describe('Satellite > Index HTML', () => {
 		});
 
 		const decoder = new TextDecoder();
-		const responseBody = decoder.decode(body as Uint8Array<ArrayBufferLike>);
+		const responseBody = decoder.decode(body);
 
 		const sourceIndexHTML = readFileSync(
 			join(process.cwd(), 'src', 'satellite', 'resources', 'index.html'),
@@ -65,7 +65,7 @@ describe('Satellite > Index HTML', () => {
 		const { http_request } = actor;
 
 		const request: SatelliteDid.HttpRequest = {
-			body: [],
+			body: Uint8Array.from([]),
 			certificate_version: toNullable(2),
 			headers: [],
 			method: 'GET',
@@ -89,7 +89,7 @@ describe('Satellite > Index HTML', () => {
 		const { http_request } = actor;
 
 		const { status_code } = await http_request({
-			body: [],
+			body: Uint8Array.from([]),
 			certificate_version: toNullable(),
 			headers: [],
 			method: 'GET',

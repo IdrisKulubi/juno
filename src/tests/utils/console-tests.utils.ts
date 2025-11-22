@@ -3,21 +3,26 @@ import {
 	type ConsoleActor0014,
 	type ConsoleActor008,
 	type MissionControlActor,
+	idlFactoryConsole,
 	idlFactoryMissionControl
 } from '$declarations';
-import type { Identity } from '@dfinity/agent';
-import { Ed25519KeyIdentity } from '@dfinity/identity';
-import type { Actor, PocketIc } from '@dfinity/pic';
+import { type Actor, PocketIc } from '@dfinity/pic';
 import {
 	arrayBufferToUint8Array,
+	arrayOfNumberToUint8Array,
 	assertNonNullish,
 	fromNullable,
 	toNullable
 } from '@dfinity/utils';
+import type { Identity } from '@icp-sdk/core/agent';
+import { Ed25519KeyIdentity } from '@icp-sdk/core/identity';
+import type { Principal } from '@icp-sdk/core/principal';
 import { readFile } from 'node:fs/promises';
+import { inject } from 'vitest';
 import { mockScript } from '../mocks/storage.mocks';
 import { tick } from './pic-tests.utils';
 import {
+	CONSOLE_WASM_PATH,
 	downloadMissionControl,
 	downloadOrbiter,
 	downloadSatellite,
@@ -49,13 +54,13 @@ const installReleaseWithDeprecatedFlow = async ({
 
 	const chunkSize = 700000;
 
-	const upload = async (chunks: number[]) => {
+	const upload = async (chunks: Uint8Array) => {
 		await load_release(segment, chunks, version);
 	};
 
 	for (let start = 0; start < wasmModule.length; start += chunkSize) {
 		const chunks = wasmModule.slice(start, start + chunkSize);
-		await upload(chunks);
+		await upload(arrayOfNumberToUint8Array(chunks));
 	}
 };
 
@@ -104,7 +109,7 @@ const uploadSegment = async ({
 			wasmPath = SATELLITE_WASM_PATH;
 	}
 
-	const data = new Blob([await readFile(wasmPath)]);
+	const data = new Blob([(await readFile(wasmPath)) as Uint8Array<ArrayBuffer>]);
 
 	const { batch_id: batchId } = await init_proposal_asset_upload(
 		{
@@ -184,37 +189,55 @@ const uploadSegment = async ({
 	});
 };
 
-export const deploySegments = async (actor: Actor<ConsoleActor | ConsoleActor0014>) => {
+export const deploySegments = async ({
+	actor,
+	withOrbiter = true,
+	withMissionControl = true,
+	withSatellite = true
+}: {
+	actor: Actor<ConsoleActor | ConsoleActor0014>;
+	withOrbiter?: boolean;
+	withMissionControl?: boolean;
+	withSatellite?: boolean;
+}) => {
 	const { init_proposal, submit_proposal, commit_proposal } = actor;
 
 	const [proposalId, _] = await init_proposal({
 		SegmentsDeployment: {
-			orbiter: toNullable(WASM_VERSIONS.orbiter),
-			mission_control_version: toNullable(WASM_VERSIONS.mission_control),
-			satellite_version: toNullable(WASM_VERSIONS.satellite)
+			orbiter: toNullable(withOrbiter ? WASM_VERSIONS.orbiter : undefined),
+			mission_control_version: toNullable(
+				withMissionControl ? WASM_VERSIONS.mission_control : undefined
+			),
+			satellite_version: toNullable(withSatellite ? WASM_VERSIONS.satellite : undefined)
 		}
 	});
 
-	await uploadSegment({
-		segment: 'satellite',
-		version: WASM_VERSIONS.satellite,
-		actor,
-		proposalId
-	});
+	if (withSatellite) {
+		await uploadSegment({
+			segment: 'satellite',
+			version: WASM_VERSIONS.satellite,
+			actor,
+			proposalId
+		});
+	}
 
-	await uploadSegment({
-		segment: 'orbiter',
-		version: WASM_VERSIONS.orbiter,
-		actor,
-		proposalId
-	});
+	if (withOrbiter) {
+		await uploadSegment({
+			segment: 'orbiter',
+			version: WASM_VERSIONS.orbiter,
+			actor,
+			proposalId
+		});
+	}
 
-	await uploadSegment({
-		segment: 'mission_control',
-		version: WASM_VERSIONS.mission_control,
-		actor,
-		proposalId
-	});
+	if (withMissionControl) {
+		await uploadSegment({
+			segment: 'mission_control',
+			version: WASM_VERSIONS.mission_control,
+			actor,
+			proposalId
+		});
+	}
 
 	const [__, { sha256 }] = await submit_proposal(proposalId);
 
@@ -422,7 +445,7 @@ export const uploadFileWithProposal = async ({
 	});
 
 	const { headers } = await http_request({
-		body: [],
+		body: Uint8Array.from([]),
 		certificate_version: toNullable(),
 		headers: [['accept-encoding', 'gzip, deflate, br']],
 		method: 'GET',
@@ -448,7 +471,7 @@ export const assertAssetServed = async ({
 	const { http_request } = actor;
 
 	const { status_code, body } = await http_request({
-		body: [],
+		body: Uint8Array.from([]),
 		certificate_version: toNullable(),
 		headers: [['accept-encoding', 'gzip, deflate, br']],
 		method: 'GET',
@@ -459,7 +482,7 @@ export const assertAssetServed = async ({
 
 	const decoder = new TextDecoder();
 
-	expect(decoder.decode(body as Uint8Array<ArrayBufferLike>)).toEqual(content);
+	expect(decoder.decode(body)).toEqual(content);
 };
 
 export const updateRateConfig = async ({
@@ -477,4 +500,68 @@ export const updateRateConfig = async ({
 	await update_rate_config({ Satellite: null }, config);
 	await update_rate_config({ Orbiter: null }, config);
 	await update_rate_config({ MissionControl: null }, config);
+};
+
+export const setupConsole = async ({
+	dateTime,
+	withApplyRateTokens = true
+}: {
+	dateTime?: Date;
+	withApplyRateTokens?: boolean;
+}): Promise<{
+	pic: PocketIc;
+	controller: Ed25519KeyIdentity;
+	canisterId: Principal;
+	actor: Actor<ConsoleActor>;
+}> => {
+	const pic = await PocketIc.create(inject('PIC_URL'));
+
+	const currentDate = dateTime ?? new Date(2021, 6, 10, 0, 0, 0, 0);
+	await pic.setTime(currentDate.getTime());
+
+	const controller = Ed25519KeyIdentity.generate();
+
+	const { actor, canisterId } = await pic.setupCanister<ConsoleActor>({
+		idlFactory: idlFactoryConsole,
+		wasm: CONSOLE_WASM_PATH,
+		sender: controller.getPrincipal()
+	});
+
+	if (withApplyRateTokens) {
+		await configMissionControlRateTokens({
+			actor,
+			controller,
+			max_tokens: 10n,
+			time_per_token_ns: 1_000_000_000n // 1s per token
+		});
+
+		await pic.advanceTime(120_000);
+		await tick(pic);
+	}
+
+	return { pic, controller, actor, canisterId };
+};
+
+export const configMissionControlRateTokens = async ({
+	max_tokens,
+	time_per_token_ns,
+	actor,
+	controller
+}: {
+	max_tokens: bigint;
+	time_per_token_ns: bigint;
+	actor: Actor<ConsoleActor>;
+	controller: Ed25519KeyIdentity;
+}) => {
+	actor.setIdentity(controller);
+
+	const { update_rate_config } = actor;
+
+	await update_rate_config(
+		{ MissionControl: null },
+		{
+			max_tokens,
+			time_per_token_ns
+		}
+	);
 };

@@ -1,8 +1,8 @@
 import { idlFactorySatellite0016, type SatelliteActor0016 } from '$declarations';
-import { Ed25519KeyIdentity } from '@dfinity/identity';
 import { PocketIc, type Actor } from '@dfinity/pic';
-import type { Principal } from '@dfinity/principal';
 import { toNullable } from '@dfinity/utils';
+import { Ed25519KeyIdentity } from '@icp-sdk/core/identity';
+import type { Principal } from '@icp-sdk/core/principal';
 import { inject } from 'vitest';
 import { upgradeSatelliteVersion } from '../../../../utils/satellite-upgrade-tests.utils';
 import { controllersInitArgs, downloadSatellite } from '../../../../utils/setup-tests.utils';
@@ -42,7 +42,7 @@ describe('Satellite > Upgrade > v0.0.21', () => {
 		const { http_request } = actor;
 
 		const { status_code } = await http_request({
-			body: [],
+			body: Uint8Array.from([]),
 			certificate_version: toNullable(),
 			headers: [],
 			method: 'GET',

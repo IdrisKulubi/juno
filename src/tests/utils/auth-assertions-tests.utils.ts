@@ -1,8 +1,8 @@
 import type { ConsoleActor, SatelliteActor, SatelliteDid } from '$declarations';
-import type { Identity } from '@dfinity/agent';
 import type { Actor, PocketIc } from '@dfinity/pic';
-import type { Principal } from '@dfinity/principal';
 import { fromNullable, nonNullish, toNullable } from '@dfinity/utils';
+import type { Identity } from '@icp-sdk/core/agent';
+import type { Principal } from '@icp-sdk/core/principal';
 import { JUNO_AUTH_ERROR_INVALID_ORIGIN } from '@junobuild/errors';
 import {
 	EXTERNAL_ALTERNATIVE_ORIGINS,
@@ -10,6 +10,7 @@ import {
 	LOG_SALT_ALREADY_INITIALIZED,
 	LOG_SALT_INITIALIZED
 } from '../constants/auth-tests.constants';
+import { mockClientId } from '../mocks/jwt.mocks';
 import { fetchLogs } from './mgmt-tests.utils';
 
 /* eslint-disable vitest/require-top-level-describe */
@@ -122,7 +123,7 @@ export const testAuthConfig = ({
 			const { http_request } = actor();
 
 			const { body } = await http_request({
-				body: [],
+				body: Uint8Array.from([]),
 				certificate_version: toNullable(),
 				headers: [],
 				method: 'GET',
@@ -130,7 +131,7 @@ export const testAuthConfig = ({
 			});
 
 			const decoder = new TextDecoder();
-			const responseBody = decoder.decode(body as Uint8Array<ArrayBufferLike>);
+			const responseBody = decoder.decode(body);
 
 			expect(responseBody).toEqual(JSON.stringify({ alternativeOrigins: [canisterIdUrl] }));
 			expect(JSON.parse(responseBody).alternativeOrigins).toEqual([canisterIdUrl]);
@@ -162,7 +163,7 @@ export const testAuthConfig = ({
 			const { http_request } = actor();
 
 			const { body } = await http_request({
-				body: [],
+				body: Uint8Array.from([]),
 				certificate_version: toNullable(),
 				headers: [],
 				method: 'GET',
@@ -170,7 +171,7 @@ export const testAuthConfig = ({
 			});
 
 			const decoder = new TextDecoder();
-			const responseBody = decoder.decode(body as Uint8Array<ArrayBufferLike>);
+			const responseBody = decoder.decode(body);
 
 			expect(responseBody).toEqual(
 				JSON.stringify({
@@ -209,7 +210,7 @@ export const testAuthConfig = ({
 			const { http_request } = actor();
 
 			const { status_code } = await http_request({
-				body: [],
+				body: Uint8Array.from([]),
 				certificate_version: toNullable(),
 				headers: [],
 				method: 'GET',
@@ -240,7 +241,7 @@ export const testAuthConfig = ({
 			const { http_request } = actor();
 
 			const { status_code } = await http_request({
-				body: [],
+				body: Uint8Array.from([]),
 				certificate_version: toNullable(),
 				headers: [],
 				method: 'GET',
@@ -323,8 +324,6 @@ export const testAuthGoogleConfig = ({
 	controller: () => Identity;
 	version: bigint;
 }) => {
-	const CLIENT_ID = '974645666757-ebfaaau4cesdddqahu83e1qqmmmmdrod.apps.googleusercontent.com';
-
 	const assertLog = async (logMessage: string) => {
 		const logs = await fetchLogs({
 			pic: pic(),
@@ -349,10 +348,12 @@ export const testAuthGoogleConfig = ({
 						[
 							{ Google: null },
 							{
-								client_id: CLIENT_ID
+								client_id: mockClientId,
+								delegation: []
 							}
 						]
-					]
+					],
+					observatory_id: []
 				}
 			],
 			version: [version]
@@ -366,7 +367,7 @@ export const testAuthGoogleConfig = ({
 			([key]) => 'Google' in key
 		)?.[1];
 
-		expect(google?.client_id).toEqual(CLIENT_ID);
+		expect(google?.client_id).toEqual(mockClientId);
 
 		await assertLog(LOG_SALT_INITIALIZED);
 	});
@@ -404,10 +405,12 @@ export const testAuthGoogleConfig = ({
 						[
 							{ Google: null },
 							{
-								client_id: CLIENT_ID
+								client_id: mockClientId,
+								delegation: []
 							}
 						]
-					]
+					],
+					observatory_id: []
 				}
 			],
 			version: [version + 2n]

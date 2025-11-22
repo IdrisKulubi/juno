@@ -1,9 +1,9 @@
 import type { SatelliteActor, SatelliteDid } from '$declarations';
-import { AnonymousIdentity } from '@dfinity/agent';
-import { Ed25519KeyIdentity } from '@dfinity/identity';
 import type { Actor, PocketIc } from '@dfinity/pic';
-import type { Principal } from '@dfinity/principal';
 import { assertNonNullish, fromNullable, fromNullishNullable, toNullable } from '@dfinity/utils';
+import { AnonymousIdentity } from '@icp-sdk/core/agent';
+import { Ed25519KeyIdentity } from '@icp-sdk/core/identity';
+import type { Principal } from '@icp-sdk/core/principal';
 import {
 	JUNO_AUTH_ERROR_NOT_ADMIN_CONTROLLER,
 	JUNO_COLLECTIONS_ERROR_COLLECTION_NOT_EMPTY
@@ -112,7 +112,7 @@ describe('Satellite > Switch storage system memory', () => {
 			const { http_request } = actor;
 
 			const request: SatelliteDid.HttpRequest = {
-				body: [],
+				body: Uint8Array.from([]),
 				certificate_version: toNullable(2),
 				headers: [],
 				method: 'GET',
@@ -125,8 +125,8 @@ describe('Satellite > Switch storage system memory', () => {
 
 			const decoder = new TextDecoder();
 
-			expect(decoder.decode(body as Uint8Array<ArrayBufferLike>)).toContain(DOMAINS[0]);
-			expect(decoder.decode(body as Uint8Array<ArrayBufferLike>)).toContain(DOMAINS[1]);
+			expect(decoder.decode(body)).toContain(DOMAINS[0]);
+			expect(decoder.decode(body)).toContain(DOMAINS[1]);
 
 			await assertCertification({
 				canisterId,
@@ -141,7 +141,7 @@ describe('Satellite > Switch storage system memory', () => {
 			const { http_request } = actor;
 
 			const request: SatelliteDid.HttpRequest = {
-				body: [],
+				body: Uint8Array.from([]),
 				certificate_version: toNullable(2),
 				headers: [],
 				method: 'GET',
@@ -153,7 +153,7 @@ describe('Satellite > Switch storage system memory', () => {
 			const { body } = response;
 
 			const decoder = new TextDecoder();
-			const responseBody = decoder.decode(body as Uint8Array<ArrayBufferLike>);
+			const responseBody = decoder.decode(body);
 
 			const alternativeOrigins = [
 				...DOMAINS.map((domain) => `https://${domain}`).reverse(),
