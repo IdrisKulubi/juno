@@ -2,21 +2,17 @@
 	import { nonNullish } from '@dfinity/utils';
 	import { run } from 'svelte/legacy';
 	import { fade } from 'svelte/transition';
-	import Cockpit from '$lib/components/launchpad/Cockpit.svelte';
-	import SatelliteNewLaunchButton from '$lib/components/satellites/SatelliteNewLaunchButton.svelte';
-	import Satellites from '$lib/components/satellites/Satellites.svelte';
-	import ContainerCentered from '$lib/components/ui/ContainerCentered.svelte';
+	import LaunchpadFirstSatellite from '$lib/components/launchpad/LaunchpadFirstSatellite.svelte';
+	import LaunchpadSegments from '$lib/components/launchpad/LaunchpadSegments.svelte';
 	import Message from '$lib/components/ui/Message.svelte';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
-	import { satellitesStore } from '$lib/derived/satellites.derived';
-	import { onIntersection } from '$lib/directives/intersection.directives';
-	import { i18n } from '$lib/stores/i18n.store';
-	import { onLayoutTitleIntersection } from '$lib/stores/layout-intersecting.store';
+	import { satellites } from '$lib/derived/satellites.derived';
+	import { i18n } from '$lib/stores/app/i18n.store';
 
 	let loading = $state(true);
 	run(() => {
 		(() => {
-			if (nonNullish($satellitesStore)) {
+			if (nonNullish($satellites)) {
 				setTimeout(() => (loading = false), 500);
 				return;
 			}
@@ -24,15 +20,9 @@
 			loading = true;
 		})();
 	});
-
-	const customOnIntersection = (element: HTMLElement) =>
-		onIntersection(element, {
-			threshold: 0.8,
-			rootMargin: '-50px 0px'
-		});
 </script>
 
-{#if loading || ($satellitesStore?.length ?? 0n) === 0}
+{#if loading || ($satellites?.length ?? 0n) === 0}
 	{#if loading}
 		<div class="spinner">
 			<Message>
@@ -40,34 +30,18 @@
 					<Spinner inline />
 				{/snippet}
 
-				<p>{$i18n.satellites.loading_launchpad}</p>
+				<p>{$i18n.launchpad.loading_launchpad}</p>
 			</Message>
 		</div>
 	{:else}
-		<div in:fade>
-			<ContainerCentered>
-				<SatelliteNewLaunchButton />
-			</ContainerCentered>
-		</div>
+		<section in:fade>
+			<LaunchpadFirstSatellite />
+		</section>
 	{/if}
-{:else if ($satellitesStore?.length ?? 0) >= 1}
-	<div in:fade>
-		<section
-			class="cockpit"
-			onjunoIntersecting={onLayoutTitleIntersection}
-			use:customOnIntersection
-		>
-			<Cockpit />
-		</section>
-
-		<h1>
-			{$i18n.satellites.title}
-		</h1>
-
-		<section>
-			<Satellites />
-		</section>
-	</div>
+{:else if ($satellites?.length ?? 0) >= 1}
+	<section in:fade>
+		<LaunchpadSegments />
+	</section>
 {/if}
 
 <style lang="scss">
@@ -82,34 +56,12 @@
 		&:first-of-type {
 			margin-top: var(--padding-4x);
 		}
-
-		&.cockpit {
-			padding: 0 var(--padding-12x);
-
-			@include grid.two-columns;
-
-			@include media.min-width(small) {
-				display: flex;
-				justify-content: center;
-
-				padding: 0;
-			}
-
-			@include media.min-width(large) {
-				@include grid.twelve-columns;
-			}
-		}
-	}
-
-	h1 {
-		margin-top: var(--padding-8x);
 	}
 
 	section,
 	h1,
 	div {
 		position: relative;
-		z-index: var(--z-index);
 	}
 
 	.spinner {

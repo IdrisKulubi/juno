@@ -1,6 +1,7 @@
 import type { CanisterIdTextSchema } from '$lib/schemas/canister.schema';
 import type { ChartsData, TimeOfDayChartData } from '$lib/types/chart';
 import type { MonitoringHistory, MonitoringMetadata } from '$lib/types/monitoring';
+import type { CertifiedData } from '$lib/types/store';
 import type { Principal } from '@icp-sdk/core/principal';
 import type * as z from 'zod';
 
@@ -67,7 +68,6 @@ export interface CanisterWarning {
 export type CanisterDataInfo = Omit<CanisterInfo, 'canisterId'>;
 
 export interface CanisterData {
-	icp: number;
 	warning: CanisterWarning;
 	canister: CanisterDataInfo;
 }
@@ -92,5 +92,10 @@ export interface Canister<T> {
 }
 
 export type CanisterSyncData = Canister<CanisterData>;
+export type CertifiedCanisterSyncData = CertifiedData<CanisterSyncData>;
 
 export type CanisterSyncMonitoring = Canister<CanisterMonitoringData>;
+export interface UncertifiedCanisterSyncMonitoring {
+	data: Canister<CanisterMonitoringData>;
+	certified: false;
+}

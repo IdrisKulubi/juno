@@ -2,14 +2,14 @@ use crate::constants::{WELL_KNOWN_CUSTOM_DOMAINS, WELL_KNOWN_II_ALTERNATIVE_ORIG
 use crate::http::types::HeaderField;
 use crate::strategies::StorageAssertionsStrategy;
 use crate::types::interface::AssetNoContent;
-use crate::types::state::FullPath;
+use crate::types::state::{AssetAccessToken, FullPath};
 use crate::types::store::{Asset, AssetEncoding, AssetKey};
 use crate::well_known::types::WellKnownAsset;
 use candid::Principal;
 use junobuild_collections::constants::assets::COLLECTION_ASSET_KEY;
 use junobuild_collections::types::core::CollectionKey;
 use junobuild_collections::types::rules::Permission;
-use junobuild_shared::list::{filter_timestamps, matcher_regex};
+use junobuild_shared::data::list::{filter_timestamps, matcher_regex};
 use junobuild_shared::types::core::Blob;
 use junobuild_shared::types::list::ListParams;
 use junobuild_shared::types::state::{Controllers, UserId};
@@ -108,7 +108,7 @@ pub fn filter_collection_values<'a>(
 pub fn get_token_protected_asset(
     asset: &Asset,
     asset_token: &String,
-    token: Option<String>,
+    token: AssetAccessToken,
 ) -> Option<Asset> {
     match token {
         None => None,

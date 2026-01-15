@@ -1,26 +1,30 @@
 <script lang="ts">
-	import { isNullish, nonNullish, notEmptyString } from '@dfinity/utils';
-	import type { MissionControlDid } from '$declarations';
+	import { nonNullish, notEmptyString } from '@dfinity/utils';
 	import IconEdit from '$lib/components/icons/IconEdit.svelte';
 	import Popover from '$lib/components/ui/Popover.svelte';
 	import Value from '$lib/components/ui/Value.svelte';
-	import { missionControlIdDerived } from '$lib/derived/mission-control.derived';
-	import { setSatelliteMetadata } from '$lib/services/mission-control.services';
-	import { busy, isBusy } from '$lib/stores/busy.store';
-	import { i18n } from '$lib/stores/i18n.store';
-	import { toasts } from '$lib/stores/toasts.store';
-	import type { SatelliteUiTags } from '$lib/types/satellite';
+	import { isBusy } from '$lib/derived/app/busy.derived';
+	import { authIdentity } from '$lib/derived/auth.derived';
+	import { missionControlId } from '$lib/derived/console/account.mission-control.derived';
+	import { setSatelliteMetadata } from '$lib/services/metadata.services';
+	import { busy } from '$lib/stores/app/busy.store';
+	import { i18n } from '$lib/stores/app/i18n.store';
+	import { toasts } from '$lib/stores/app/toasts.store';
+	import type { Satellite, SatelliteUiTags } from '$lib/types/satellite';
 	import { satelliteEnvironment, satelliteName, satelliteTags } from '$lib/utils/satellite.utils';
 
 	interface Props {
-		satellite: MissionControlDid.Satellite;
+		satellite: Satellite;
 	}
 
 	let { satellite }: Props = $props();
 
+	// svelte-ignore state_referenced_locally
 	let satName = $state(satelliteName(satellite));
+	// svelte-ignore state_referenced_locally
 	let satEnv = $state<string | undefined>(satelliteEnvironment(satellite));
 
+	// svelte-ignore state_referenced_locally
 	let satTagsInput = $state(satelliteTags(satellite)?.join(',') ?? '');
 	let satTags = $derived<SatelliteUiTags>(
 		satTagsInput
@@ -44,17 +48,11 @@
 			return;
 		}
 
-		if (isNullish($missionControlIdDerived)) {
-			toasts.error({
-				text: $i18n.errors.no_mission_control
-			});
-			return;
-		}
-
 		busy.start();
 
 		const { success } = await setSatelliteMetadata({
-			missionControlId: $missionControlIdDerived,
+			missionControlId: $missionControlId,
+			identity: $authIdentity,
 			satellite,
 			metadata: {
 				name: satName,

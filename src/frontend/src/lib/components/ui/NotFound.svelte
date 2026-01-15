@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Html from '$lib/components/ui/Html.svelte';
 	import Info from '$lib/components/ui/Info.svelte';
-	import { i18n } from '$lib/stores/i18n.store';
+	import { i18n } from '$lib/stores/app/i18n.store';
 
 	interface Props {
 		warnText: string;
@@ -12,7 +12,7 @@
 
 <p class="label"><Info><Html text={warnText} /></Info></p>
 
-<a class="button" href="/">{$i18n.satellites.go_launchpad}</a>
+<a class="button" href="/">{$i18n.launchpad.go_launchpad}</a>
 
 <style lang="scss">
 	p {

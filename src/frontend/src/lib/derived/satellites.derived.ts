@@ -1,18 +1,32 @@
-import { satellitesUncertifiedStore } from '$lib/stores/satellite.store';
-import type { SatelliteUi } from '$lib/types/satellite';
+import { consoleSatellites } from '$lib/derived/console/segments.derived';
+import { mctrlSatellites } from '$lib/derived/mission-control/mission-control-satellites.derived';
+import type { Satellite, SatelliteUi } from '$lib/types/satellite';
 import { satelliteMetadata, satelliteName } from '$lib/utils/satellite.utils';
 import { derived } from 'svelte/store';
 
-// TODO: rename without suffix store but find another naming that satellite and satelliteId because we probably already use those for local variable.
+export const satellites = derived(
+	[consoleSatellites, mctrlSatellites],
+	([$consoleSatellites, $mctrlSatellitesStore]): Satellite[] | undefined => {
+		// Not yet fully loaded
+		if ($consoleSatellites === undefined || $mctrlSatellitesStore === undefined) {
+			return undefined;
+		}
 
-export const satellitesStore = derived(
-	[satellitesUncertifiedStore],
-	([$satellitesDataStore]) => $satellitesDataStore?.data
+		return [
+			...$consoleSatellites.filter(
+				({ satellite_id }) =>
+					($mctrlSatellitesStore ?? []).find(
+						({ satellite_id: id }) => id.toText() === satellite_id.toText()
+					) === undefined
+			),
+			...($mctrlSatellitesStore ?? [])
+		];
+	}
 );
 
 export const satellitesLoaded = derived(
-	[satellitesUncertifiedStore],
-	([$satellitesDataStore]) => $satellitesDataStore !== undefined
+	[satellites],
+	([$satellitesStore]) => $satellitesStore !== undefined
 );
 
 export const satellitesNotLoaded = derived(
@@ -20,7 +34,7 @@ export const satellitesNotLoaded = derived(
 	([$satellitesLoaded]) => !$satellitesLoaded
 );
 
-export const sortedSatellites = derived([satellitesStore], ([$satellitesStore]) =>
+export const sortedSatellites = derived([satellites], ([$satellitesStore]) =>
 	($satellitesStore ?? []).sort((a, b) => satelliteName(a).localeCompare(satelliteName(b)))
 );
 

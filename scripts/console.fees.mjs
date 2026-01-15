@@ -4,11 +4,20 @@ import { consoleActor } from './actor.mjs';
 import { segmentType } from './console.utils.mjs';
 
 const setFee = async ({ actor, type }) => {
-	await actor.set_fee(segmentType(type), { e8s: 40_000_000n });
+	const { set_fee } = actor;
+
+	await set_fee(segmentType(type), {
+		fee_cycles: { e12s: 3_000_000_000_000n },
+		fee_icp: { e8s: 40_000_000n }
+	});
 
 	console.log(`Fee set for ${type}.`);
 };
 
 const actor = await consoleActor();
 
-await Promise.all([setFee({ actor, type: 'satellite' }), setFee({ actor, type: 'orbiter' })]);
+await Promise.all([
+	setFee({ actor, type: 'satellite' }),
+	setFee({ actor, type: 'orbiter' }),
+	setFee({ actor, type: 'mission-control' })
+]);

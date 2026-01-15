@@ -1,9 +1,12 @@
-import { setSatellitesController } from '$lib/api/mission-control.api';
 import { isNotSkylab } from '$lib/env/app.env';
-import { getEmulatorMainIdentity } from '$lib/rest/emulator.rest';
-import { i18n } from '$lib/stores/i18n.store';
-import type { SetControllerParams } from '$lib/types/controllers';
-import type { MissionControlId } from '$lib/types/mission-control';
+import {
+	emulatorObservatoryMonitoringOpenId,
+	getEmulatorMainIdentity
+} from '$lib/rest/emulator.rest';
+import { addSatellitesAdminAccessKey } from '$lib/services/access-keys/satellites.key.add.services';
+import { i18n } from '$lib/stores/app/i18n.store';
+import { toasts } from '$lib/stores/app/toasts.store';
+import type { AddAdminAccessKeyParams } from '$lib/types/access-keys';
 import type { Identity } from '@icp-sdk/core/agent';
 import type { Principal } from '@icp-sdk/core/principal';
 import { get } from 'svelte/store';
@@ -16,52 +19,54 @@ import { get } from 'svelte/store';
  * To prevent any abuse, these functions are guarded by the SKYLAB flag, and the URL is blocked by the CSP in production.
  */
 export const unsafeSetEmulatorControllerForSatellite = async ({
-	missionControlId,
 	satelliteId,
 	identity
 }: {
-	missionControlId: MissionControlId;
 	satelliteId: Principal;
 	identity: Identity;
 }) => {
-	const add = (
-		params: {
-			missionControlId: MissionControlId;
-		} & SetControllerParams
-	): Promise<void> =>
-		setSatellitesController({
+	const add = (params: AddAdminAccessKeyParams): Promise<void> =>
+		addSatellitesAdminAccessKey({
 			...params,
-			satelliteIds: [satelliteId],
-			identity
+			identity,
+			satelliteIds: [satelliteId]
 		});
 
 	await unsafeSetEmulatorController({
-		missionControlId,
 		addController: add
 	});
 };
 
 const unsafeSetEmulatorController = async ({
-	missionControlId,
 	addController
 }: {
-	missionControlId: MissionControlId;
-	addController: (
-		params: {
-			missionControlId: MissionControlId;
-		} & SetControllerParams
-	) => Promise<void>;
+	addController: (params: AddAdminAccessKeyParams) => Promise<void>;
 }) => {
 	if (isNotSkylab()) {
-		throw new Error(get(i18n).emulator.error_never_execute);
+		throw new Error(get(i18n).emulator.error_never_execute_set_controller);
 	}
 
 	const mainIdentity = await getEmulatorMainIdentity();
 
 	await addController({
-		controllerId: mainIdentity,
-		missionControlId,
-		profile: `👾 ${get(i18n).emulator.emulator}`,
-		scope: 'admin'
+		accessKeyId: mainIdentity,
+		profile: `👾 ${get(i18n).emulator.emulator}`
 	});
+};
+
+export const emulatorToggleOpenIdMonitoring = async ({ enable }: { enable: boolean }) => {
+	if (isNotSkylab()) {
+		throw new Error(get(i18n).emulator.error_never_execute_openid_monitoring);
+	}
+
+	try {
+		await emulatorObservatoryMonitoringOpenId({
+			action: enable ? 'start' : 'stop'
+		});
+	} catch (err: unknown) {
+		toasts.error({
+			text: get(i18n).emulator.error_toggling_openid_monitoring_failed,
+			detail: err
+		});
+	}
 };

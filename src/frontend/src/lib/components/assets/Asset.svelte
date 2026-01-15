@@ -4,15 +4,16 @@
 	import { getContext } from 'svelte';
 	import type { SatelliteDid } from '$declarations';
 	import { deleteAsset } from '$lib/api/satellites.api';
+	import AssetToken from '$lib/components/assets/AssetToken.svelte';
 	import AssetUpload from '$lib/components/assets/AssetUpload.svelte';
 	import DataHeader from '$lib/components/data/DataHeader.svelte';
 	import DataKeyDelete from '$lib/components/data/DataKeyDelete.svelte';
 	import ExternalLink from '$lib/components/ui/ExternalLink.svelte';
 	import Identifier from '$lib/components/ui/Identifier.svelte';
 	import Value from '$lib/components/ui/Value.svelte';
-	import { authStore } from '$lib/stores/auth.store';
-	import { i18n } from '$lib/stores/i18n.store';
-	import { toasts } from '$lib/stores/toasts.store';
+	import { authIdentity } from '$lib/derived/auth.derived';
+	import { i18n } from '$lib/stores/app/i18n.store';
+	import { toasts } from '$lib/stores/app/toasts.store';
 	import { DATA_CONTEXT_KEY, type DataContext } from '$lib/types/data.context';
 	import { PAGINATION_CONTEXT_KEY, type PaginationContext } from '$lib/types/pagination.context';
 	import { RULES_CONTEXT_KEY, type RulesContext } from '$lib/types/rules.context';
@@ -66,7 +67,7 @@
 		await deleteAsset({
 			...params,
 			full_path,
-			identity: $authStore.identity
+			identity: $authIdentity
 		});
 
 		resetData();
@@ -95,6 +96,10 @@
 					{$i18n.asset.replace_description}
 				{/snippet}
 			</AssetUpload>
+
+			{#if nonNullish(asset)}
+				<AssetToken {asset} onsettokensuccess={reload} />
+			{/if}
 
 			<DataKeyDelete {deleteData}>
 				{#snippet title()}

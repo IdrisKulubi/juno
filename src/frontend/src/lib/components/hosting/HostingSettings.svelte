@@ -1,17 +1,19 @@
 <script lang="ts">
-	import { fromNullable, nonNullish } from '@dfinity/utils';
-	import { onMount } from 'svelte';
+	import { fromNullable, isNullish, nonNullish } from '@dfinity/utils';
+	import { untrack } from 'svelte';
 	import { fade } from 'svelte/transition';
-	import type { SatelliteDid, MissionControlDid } from '$declarations';
+	import type { SatelliteDid } from '$declarations';
 	import HostingSwitchMemory from '$lib/components/hosting/HostingSwitchMemory.svelte';
 	import SkeletonText from '$lib/components/ui/SkeletonText.svelte';
 	import Value from '$lib/components/ui/Value.svelte';
-	import { getRuleDapp } from '$lib/services/collection.services';
-	import { authStore } from '$lib/stores/auth.store';
-	import { i18n } from '$lib/stores/i18n.store';
+	import { authIdentity } from '$lib/derived/auth.derived';
+	import { getRuleDapp } from '$lib/services/satellite/collection.services';
+	import { i18n } from '$lib/stores/app/i18n.store';
+	import { versionStore } from '$lib/stores/version.store';
+	import type { Satellite } from '$lib/types/satellite';
 
 	interface Props {
-		satellite: MissionControlDid.Satellite;
+		satellite: Satellite;
 	}
 
 	let { satellite }: Props = $props();
@@ -25,15 +27,22 @@
 	let memory = $derived(fromNullable(rule?.memory ?? []));
 
 	const loadRule = async () => {
-		const result = await getRuleDapp({ satelliteId, identity: $authStore.identity });
+		if (isNullish($authIdentity) || $versionStore?.satellites[satelliteId.toText()] === undefined) {
+			return;
+		}
+
+		const result = await getRuleDapp({ satelliteId, identity: $authIdentity });
 		rule = result?.rule;
 		supportSettings = result?.result === 'success';
 
 		loading = false;
 	};
 
-	onMount(() => {
-		loadRule();
+	$effect(() => {
+		$authIdentity;
+		$versionStore;
+
+		untrack(loadRule);
 	});
 </script>
 

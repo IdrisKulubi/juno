@@ -1,27 +1,36 @@
 <script lang="ts">
-	import { isNullish } from '@dfinity/utils';
-	import ReceiveTokens from '$lib/components/tokens/ReceiveTokens.svelte';
-	import Transactions from '$lib/components/transactions/Transactions.svelte';
-	import TransactionsExport from '$lib/components/transactions/TransactionsExport.svelte';
+	import { isNullish, nonNullish } from '@dfinity/utils';
+	import { encodeIcrcAccount } from '@icp-sdk/canisters/ledger/icrc';
+	import { Principal } from '@icp-sdk/core/principal';
 	import WalletActions from '$lib/components/wallet/WalletActions.svelte';
-	import WalletBalance from '$lib/components/wallet/WalletBalance.svelte';
 	import WalletIds from '$lib/components/wallet/WalletIds.svelte';
+	import WalletPicker from '$lib/components/wallet/WalletPicker.svelte';
+	import WalletTokenPicker from '$lib/components/wallet/WalletTokenPicker.svelte';
+	import WalletBalanceById from '$lib/components/wallet/balance/WalletBalanceById.svelte';
+	import ReceiveTokens from '$lib/components/wallet/tokens/ReceiveTokens.svelte';
+	import Transactions from '$lib/components/wallet/transactions/Transactions.svelte';
+	import TransactionsExport from '$lib/components/wallet/transactions/TransactionsExport.svelte';
 	import { PAGINATION } from '$lib/constants/app.constants';
+	import { CYCLES } from '$lib/constants/token.constants';
 	import { authSignedIn, authSignedOut } from '$lib/derived/auth.derived';
-	import { balance } from '$lib/derived/balance.derived';
-	import { transactions } from '$lib/derived/transactions.derived';
-	import { loadNextTransactions } from '$lib/services/wallet/wallet.services';
-	import { authStore } from '$lib/stores/auth.store';
-	import { i18n } from '$lib/stores/i18n.store';
-	import { toasts } from '$lib/stores/toasts.store';
-	import type { MissionControlId } from '$lib/types/mission-control';
+	import { transactions } from '$lib/derived/wallet/transactions.derived';
+	import type { SelectedToken, SelectedWallet } from '$lib/schemas/wallet.schema';
+	import { loadNextTransactions } from '$lib/services/wallet/wallet.transactions.services';
+	import { i18n } from '$lib/stores/app/i18n.store';
+	import { toasts } from '$lib/stores/app/toasts.store';
 	import { last } from '$lib/utils/utils';
 
-	interface Props {
-		missionControlId: MissionControlId;
-	}
+	let selectedWallet = $state<SelectedWallet | undefined>(undefined);
 
-	let { missionControlId }: Props = $props();
+	let selectedToken = $state<SelectedToken>(CYCLES);
+
+	let walletIdText = $derived(
+		nonNullish(selectedWallet) ? encodeIcrcAccount(selectedWallet.walletId) : undefined
+	);
+
+	let walletTransactions = $derived(
+		nonNullish(walletIdText) ? ($transactions[walletIdText]?.[selectedToken.ledgerId] ?? []) : []
+	);
 
 	/**
 	 * Scroll
@@ -37,16 +46,23 @@
 			return;
 		}
 
-		const lastId = last($transactions)?.data.id;
+		const lastId = last(walletTransactions)?.data.id;
 
 		if (isNullish(lastId)) {
 			// No transactions, we do nothing here and wait for the worker to post the first transactions
 			return;
 		}
 
+		if (isNullish(selectedWallet)) {
+			// For simplicity reasons. If walletId is undefined then transactions is an empty array then intersection
+			// likely cannot happen.
+			return;
+		}
+
 		await loadNextTransactions({
-			owner: missionControlId,
-			identity: $authStore.identity,
+			account: selectedWallet.walletId,
+			ledgerId: Principal.fromText(selectedToken.ledgerId),
+			indexId: Principal.fromText(selectedToken.indexId),
 			maxResults: PAGINATION,
 			start: lastId,
 			signalEnd: () => (disableInfiniteScroll = true)
@@ -62,25 +78,36 @@
 
 		<div class="columns-3 fit-column-1">
 			<div>
-				<WalletIds {missionControlId} />
+				<WalletPicker bind:selectedWallet />
+
+				<WalletTokenPicker {selectedWallet} bind:selectedToken />
+
+				{#if nonNullish(selectedWallet)}
+					<WalletIds {selectedWallet} />
+				{/if}
 			</div>
 
 			<div>
-				<WalletBalance balance={$balance} />
+				<WalletBalanceById {selectedToken} {selectedWallet} />
 			</div>
 		</div>
 	</div>
 
-	<WalletActions {missionControlId} onreceive={() => (receiveVisible = true)} />
+	{#if nonNullish(selectedWallet)}
+		<WalletActions onreceive={() => (receiveVisible = true)} {selectedToken} {selectedWallet} />
 
-	<Transactions
-		{disableInfiniteScroll}
-		{missionControlId}
-		{onintersect}
-		transactions={$transactions}
-	/>
+		<Transactions
+			{disableInfiniteScroll}
+			{onintersect}
+			{selectedToken}
+			{selectedWallet}
+			transactions={walletTransactions}
+		/>
 
-	<TransactionsExport {missionControlId} transactions={$transactions} />
+		<TransactionsExport {selectedToken} {selectedWallet} transactions={walletTransactions} />
+	{/if}
 {/if}
 
-<ReceiveTokens {missionControlId} bind:visible={receiveVisible} />
+{#if nonNullish(selectedWallet)}
+	<ReceiveTokens {selectedWallet} bind:visible={receiveVisible} />
+{/if}

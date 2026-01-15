@@ -1,4 +1,9 @@
-import { icpXdrConversionRate } from '$lib/api/cmc.api';
+import {
+	queryAndUpdate,
+	type QueryAndUpdateOnCertifiedError,
+	type QueryAndUpdateOnResponse,
+	type QueryAndUpdateRequestParams
+} from '$lib/api/call/query.api';
 import { canisterStatus } from '$lib/api/ic.api';
 import {
 	CYCLES_WARNING,
@@ -6,16 +11,11 @@ import {
 	SYNC_CYCLES_TIMER_INTERVAL
 } from '$lib/constants/app.constants';
 import { ONE_YEAR, THREE_MONTHS } from '$lib/constants/canister.constants';
-import { cyclesIdbStore } from '$lib/stores/idb.store';
+import { cyclesIdbStore } from '$lib/stores/app/idb.store';
 import type { CanisterInfo, CanisterSegment, CanisterSyncData, Segment } from '$lib/types/canister';
 import type { PostMessageDataRequest, PostMessageRequest } from '$lib/types/post-message';
-import { cyclesToICP } from '$lib/utils/cycles.utils';
-import {
-	emitCanister,
-	emitCanisters,
-	emitSavedCanisters,
-	loadIdentity
-} from '$lib/utils/worker.utils';
+import { emitCanisters, emitSavedCanisters, loadIdentity } from '$lib/utils/worker.utils';
+import { CanistersStore } from '$lib/workers/_stores/canisters.store';
 import { isNullish } from '@dfinity/utils';
 import type { Identity } from '@icp-sdk/core/agent';
 import { set } from 'idb-keyval';
@@ -90,9 +90,7 @@ const syncCanisters = async ({
 	});
 
 	try {
-		const trillionRatio: bigint = await icpXdrConversionRate();
-
-		await syncIcStatusCanisters({ identity, segments, trillionRatio });
+		await syncIcStatusCanisters({ identity, segments });
 	} finally {
 		syncing = false;
 	}
@@ -100,45 +98,68 @@ const syncCanisters = async ({
 
 const syncIcStatusCanisters = async ({
 	identity,
-	segments,
-	trillionRatio
+	segments
 }: {
 	identity: Identity;
 	segments: CanisterSegment[];
-	trillionRatio: bigint;
 }) => {
+	const canistersStore = new CanistersStore();
+
 	const syncStatusAndMemoryPerCanister = async ({
 		canisterId,
 		segment
-	}: CanisterSegment): Promise<CanisterSyncData> => {
-		try {
-			const canisterInfo = await canisterStatus({ canisterId, identity });
+	}: CanisterSegment): Promise<void> => {
+		const request = ({
+			identity: _,
+			certified
+		}: QueryAndUpdateRequestParams): Promise<CanisterInfo> =>
+			canisterStatus({ canisterId, identity, certified });
 
+		const onLoad: QueryAndUpdateOnResponse<CanisterInfo> = ({
+			certified,
+			response: canisterInfo
+		}) => {
 			const canister = mapCanisterSyncData({
 				canisterInfo,
-				trillionRatio,
-				canisterId: canisterInfo.canisterId,
+				canisterId,
 				segment
 			});
 
-			// We emit the canister data this way the UI can render asynchronously render the information without waiting for all canisters status to be fetched.
-			emitCanister(canister);
+			canistersStore.sync({ canisterId, data: { data: canister, certified } });
+		};
 
-			return canister;
-		} catch (err: unknown) {
-			console.error(err);
+		const onCertifiedError: QueryAndUpdateOnCertifiedError = ({ error }) => {
+			console.error(error);
 
-			return {
-				id: canisterId,
-				sync: 'error'
-			};
-		}
+			canistersStore.set({
+				canisterId,
+				data: {
+					data: {
+						id: canisterId,
+						sync: 'error'
+					},
+					certified: false
+				}
+			});
+		};
+
+		await queryAndUpdate<CanisterInfo>({
+			request,
+			onLoad,
+			onCertifiedError,
+			identity,
+			resolution: 'all_settled'
+		});
 	};
 
-	const canisters = await Promise.all(segments.map(syncStatusAndMemoryPerCanister));
+	await Promise.all(segments.map(syncStatusAndMemoryPerCanister));
+
+	const canisters = canistersStore.getValues();
 
 	// Save information in indexed-db as well to load previous values on navigation and refresh
-	for (const { id, ...rest } of canisters.filter(({ sync }) => sync !== 'error')) {
+	for (const {
+		data: { id, ...rest }
+	} of canisters.filter(({ data: { sync } }) => sync !== 'error')) {
 		await set(id, { id, ...rest }, cyclesIdbStore);
 	}
 
@@ -148,19 +169,16 @@ const syncIcStatusCanisters = async ({
 
 const mapCanisterSyncData = ({
 	canisterId,
-	trillionRatio,
 	segment,
 	canisterInfo: { canisterId: _, memoryMetrics, cycles, settings, ...rest }
 }: {
 	canisterId: string;
-	trillionRatio: bigint;
 	canisterInfo: CanisterInfo;
 	segment: Segment;
 }): CanisterSyncData => ({
 	id: canisterId,
 	sync: 'synced',
 	data: {
-		icp: cyclesToICP({ cycles, trillionRatio }),
 		warning: {
 			cycles: cycles < CYCLES_WARNING,
 			heap: (memoryMetrics.wasmMemorySize ?? 0n) >= MEMORY_HEAP_WARNING,

@@ -7,14 +7,14 @@
 	import MonitoringArticle from '$lib/components/monitoring/MonitoringArticle.svelte';
 	import NoMonitoring from '$lib/components/monitoring/NoMonitoring.svelte';
 	import SpinnerParagraph from '$lib/components/ui/SpinnerParagraph.svelte';
+	import { mctrlSortedSatellites } from '$lib/derived/mission-control/mission-control-satellites.derived';
 	import {
 		hasMissionControlSettings,
 		missionControlMonitoring,
 		missionControlSettingsNotLoaded
-	} from '$lib/derived/mission-control-settings.derived';
-	import { orbitersStore } from '$lib/derived/orbiter.derived';
-	import { sortedSatellites } from '$lib/derived/satellites.derived';
-	import { i18n } from '$lib/stores/i18n.store';
+	} from '$lib/derived/mission-control/mission-control-settings.derived';
+	import { orbiters } from '$lib/derived/orbiter.derived';
+	import { i18n } from '$lib/stores/app/i18n.store';
 	import type { MissionControlId } from '$lib/types/mission-control';
 	import { satelliteName } from '$lib/utils/satellite.utils';
 
@@ -43,7 +43,7 @@
 			<span>{$i18n.mission_control.title}</span>
 		</MonitoringArticle>
 
-		{#each $sortedSatellites ?? [] as satellite (satellite.satellite_id.toText())}
+		{#each $mctrlSortedSatellites ?? [] as satellite (satellite.satellite_id.toText())}
 			<MonitoringArticle
 				canisterId={satellite.satellite_id}
 				monitoring={fromNullishNullable(fromNullable(satellite.settings)?.monitoring)}
@@ -55,7 +55,7 @@
 			</MonitoringArticle>
 		{/each}
 
-		{#each $orbitersStore ?? [] as orbiter (orbiter.orbiter_id.toText())}
+		{#each $orbiters ?? [] as orbiter (orbiter.orbiter_id.toText())}
 			<MonitoringArticle
 				canisterId={orbiter.orbiter_id}
 				monitoring={fromNullishNullable(fromNullable(orbiter.settings)?.monitoring)}

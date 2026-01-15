@@ -12,12 +12,12 @@
 	import { getContext, type Snippet } from 'svelte';
 	import type { SatelliteDid } from '$declarations';
 	import DataUpload from '$lib/components/data/DataUpload.svelte';
-	import IconAutoRenew from '$lib/components/icons/IconAutoRenew.svelte';
+	import InputGenerate from '$lib/components/ui/InputGenerate.svelte';
 	import Value from '$lib/components/ui/Value.svelte';
-	import { authStore } from '$lib/stores/auth.store';
-	import { busy } from '$lib/stores/busy.store';
-	import { i18n } from '$lib/stores/i18n.store';
-	import { toasts } from '$lib/stores/toasts.store';
+	import { authIdentity } from '$lib/derived/auth.derived';
+	import { busy } from '$lib/stores/app/busy.store';
+	import { i18n } from '$lib/stores/app/i18n.store';
+	import { toasts } from '$lib/stores/app/toasts.store';
 	import { RULES_CONTEXT_KEY, type RulesContext } from '$lib/types/rules.context';
 	import { fileToDocData } from '$lib/utils/doc.utils';
 	import { container } from '$lib/utils/juno.utils';
@@ -84,7 +84,7 @@
 			return;
 		}
 
-		if (isNullish($authStore.identity)) {
+		if (isNullish($authIdentity)) {
 			toasts.error({
 				text: $i18n.authentication.not_signed_in
 			});
@@ -104,7 +104,7 @@
 				},
 				satellite: {
 					satelliteId: satelliteId.toText(),
-					identity: $authStore.identity,
+					identity: $authIdentity,
 					...container()
 				}
 			});
@@ -138,24 +138,13 @@
 				{#snippet label()}
 					{$i18n.document.key}
 				{/snippet}
-				<div class="form-doc-key">
-					<input
-						id="doc-key"
-						autocomplete="off"
-						data-1p-ignore
-						placeholder={$i18n.document.key_placeholder}
-						type="text"
-						bind:value={key}
-					/>
-					<button
-						class="text"
-						aria-label={$i18n.document.key_generate}
-						onclick={generateKey}
-						type="button"
-					>
-						<IconAutoRenew size="20px" />
-					</button>
-				</div>
+
+				<InputGenerate
+					generate={generateKey}
+					generateLabel={$i18n.document.key_generate}
+					inputPlaceholder={$i18n.document.key_placeholder}
+					bind:inputValue={key}
+				/>
 			</Value>
 		</div>
 
@@ -180,15 +169,3 @@
 		{mode === 'replace' ? $i18n.core.replace : $i18n.core.create}
 	{/snippet}
 </DataUpload>
-
-<style lang="scss">
-	.form-doc-key {
-		display: flex;
-		align-items: center;
-		gap: var(--padding-2x);
-
-		button {
-			margin: var(--padding) 0 var(--padding-2x);
-		}
-	}
-</style>

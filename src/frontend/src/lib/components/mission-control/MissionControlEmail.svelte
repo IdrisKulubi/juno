@@ -6,16 +6,17 @@
 	import SkeletonText from '$lib/components/ui/SkeletonText.svelte';
 	import Value from '$lib/components/ui/Value.svelte';
 	import { EMAIL_PLACEHOLDER } from '$lib/constants/monitoring.constants';
+	import { isBusy } from '$lib/derived/app/busy.derived';
+	import { authIdentity } from '$lib/derived/auth.derived';
+	import { missionControlId } from '$lib/derived/console/account.mission-control.derived';
 	import {
 		missionControlEmail,
 		missionControlMetadata,
 		missionControlUserDataLoaded
-	} from '$lib/derived/mission-control-user.derived';
-	import { missionControlIdDerived } from '$lib/derived/mission-control.derived';
-	import { setMetadataEmail } from '$lib/services/mission-control.services';
-	import { authStore } from '$lib/stores/auth.store';
-	import { busy, isBusy } from '$lib/stores/busy.store';
-	import { i18n } from '$lib/stores/i18n.store';
+	} from '$lib/derived/mission-control/mission-control-user.derived';
+	import { setMetadataEmail } from '$lib/services/mission-control/mission-control.services';
+	import { busy } from '$lib/stores/app/busy.store';
+	import { i18n } from '$lib/stores/app/i18n.store';
 
 	let email = $state('');
 	let visible: boolean = $state(false);
@@ -35,8 +36,8 @@
 		busy.start();
 
 		const { success } = await setMetadataEmail({
-			identity: $authStore.identity,
-			missionControlId: $missionControlIdDerived,
+			identity: $authIdentity,
+			missionControlId: $missionControlId,
 			metadata: $missionControlMetadata ?? [],
 			email
 		});

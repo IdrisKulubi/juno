@@ -1,6 +1,6 @@
 <script lang="ts">
 	import AnalyticsTable from '$lib/components/analytics/AnalyticsTable.svelte';
-	import { i18n } from '$lib/stores/i18n.store';
+	import { i18n } from '$lib/stores/app/i18n.store';
 	import type { AnalyticsPageViews } from '$lib/types/orbiter';
 
 	interface Props {
@@ -15,7 +15,7 @@
 </script>
 
 {#if pages.length > 0}
-	<AnalyticsTable events={pages}>
+	<AnalyticsTable events={pages} withTitle>
 		{$i18n.analytics.pages}
 	</AnalyticsTable>
 {/if}

@@ -1,0 +1,72 @@
+use crate::factory::services::ledger::icrc::icrc_transfer_from;
+use candid::{Nat, Principal};
+use ic_ledger_types::{BlockIndex, Tokens};
+use junobuild_shared::constants::shared::{IC_TRANSACTION_FEE_ICP, MEMO_SATELLITE_CREATE_REFUND};
+use junobuild_shared::env::ICP_LEDGER;
+use junobuild_shared::ic::api::id;
+use junobuild_shared::ledger::icp::{
+    find_payment, principal_to_account_identifier, transfer_payment, SUB_ACCOUNT,
+};
+
+pub async fn icp_verify_payment(
+    purchaser: &Principal,
+    purchaser_payment_block_index: &BlockIndex,
+    canister_fee: Tokens,
+) -> Result<BlockIndex, String> {
+    let purchaser_account_identifier = principal_to_account_identifier(purchaser, &SUB_ACCOUNT);
+    let console_account_identifier = principal_to_account_identifier(&id(), &SUB_ACCOUNT);
+
+    // User should have processed a payment from the mission control center
+    let block_index = find_payment(
+        purchaser_account_identifier,
+        console_account_identifier,
+        canister_fee,
+        *purchaser_payment_block_index,
+    )
+    .await;
+
+    if block_index.is_none() {
+        return Err([
+            "No valid payment found to create satellite.",
+            &format!(" Purchaser: {purchaser_account_identifier}"),
+            &format!(" Console: {console_account_identifier}"),
+            &format!(" Amount: {canister_fee}"),
+            &format!(" Block index: {:?}", block_index),
+        ]
+        .join(""));
+    }
+
+    Ok(*purchaser_payment_block_index)
+}
+
+pub async fn icp_transfer_payment(
+    purchaser: &Principal,
+    canister_fee: Tokens,
+) -> Result<BlockIndex, String> {
+    // We refund the satellite creation fee minus the ic fee - i.e. user pays the fee
+    let refund_amount = canister_fee - IC_TRANSACTION_FEE_ICP;
+
+    // Refund on error
+    let refund_block_index = transfer_payment(
+        purchaser,
+        &SUB_ACCOUNT,
+        MEMO_SATELLITE_CREATE_REFUND,
+        refund_amount,
+        IC_TRANSACTION_FEE_ICP,
+    )
+    .await
+    .map_err(|e| format!("failed to call ledger: {e:?}"))?
+    .map_err(|e| format!("ledger transfer error {e:?}"))?;
+
+    Ok(refund_block_index)
+}
+
+pub async fn icp_transfer_from(
+    purchaser: &Principal,
+    canister_fee: &Tokens,
+) -> Result<BlockIndex, String> {
+    let transaction_fee = Nat::from(IC_TRANSACTION_FEE_ICP.e8s());
+    let ledger_id = Principal::from_text(ICP_LEDGER).unwrap();
+
+    icrc_transfer_from(purchaser, &ledger_id, canister_fee.e8s(), &transaction_fee).await
+}

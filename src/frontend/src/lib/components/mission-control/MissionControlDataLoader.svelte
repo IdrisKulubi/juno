@@ -1,9 +1,12 @@
 <script lang="ts">
 	import { isNullish } from '@dfinity/utils';
 	import { onMount, type Snippet, untrack } from 'svelte';
+	import { authIdentity } from '$lib/derived/auth.derived';
 	import { missionControlVersion } from '$lib/derived/version.derived';
-	import { loadSettings, loadUserData } from '$lib/services/mission-control.services';
-	import { authStore } from '$lib/stores/auth.store';
+	import {
+		loadSettings,
+		loadUserData
+	} from '$lib/services/mission-control/mission-control.services';
 	import type { MissionControlId } from '$lib/types/mission-control';
 
 	interface Props {
@@ -22,12 +25,12 @@
 		await Promise.all([
 			loadSettings({
 				missionControlId,
-				identity: $authStore.identity,
+				identity: $authIdentity,
 				reload
 			}),
 			loadUserData({
 				missionControlId,
-				identity: $authStore.identity,
+				identity: $authIdentity,
 				reload
 			})
 		]);

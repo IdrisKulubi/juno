@@ -1,11 +1,14 @@
-import { balanceCertifiedStore } from '$lib/stores/balance.store';
-import { exchangePricesCanisterDataStore } from '$lib/stores/exchange.store';
-import { i18n } from '$lib/stores/i18n.store';
-import { toasts } from '$lib/stores/toasts.store';
-import { transactionsCertifiedStore } from '$lib/stores/transactions.store';
+import { i18n } from '$lib/stores/app/i18n.store';
+import { toasts } from '$lib/stores/app/toasts.store';
+import { balanceCertifiedStore } from '$lib/stores/wallet/balance.store';
+import { exchangePricesCanisterDataStore } from '$lib/stores/wallet/exchange.store';
+import { icpToCyclesRateStore } from '$lib/stores/wallet/icp-cycles-rate.store';
+import { transactionsCertifiedStore } from '$lib/stores/wallet/transactions.store';
 import type {
 	PostMessageDataResponseExchange,
-	PostMessageDataResponseWallet
+	PostMessageDataResponseIcpToCyclesRate,
+	PostMessageDataResponseWallet,
+	PostMessageDataResponseWalletCleanUp
 } from '$lib/types/post-message';
 import { isNullish, jsonReviver } from '@dfinity/utils';
 import { get } from 'svelte/store';
@@ -15,18 +18,30 @@ export const onSyncWallet = (data: PostMessageDataResponseWallet) => {
 		return;
 	}
 
-	balanceCertifiedStore.set(data.wallet.balance);
+	const {
+		wallet: { walletId, ledgerId, newTransactions, balance }
+	} = data;
 
-	const newTransactions = JSON.parse(data.wallet.newTransactions, jsonReviver);
+	balanceCertifiedStore.set({
+		walletId,
+		ledgerId,
+		data: balance
+	});
 
-	transactionsCertifiedStore.prepend(newTransactions);
+	const transactions = JSON.parse(newTransactions, jsonReviver);
+
+	transactionsCertifiedStore.prepend({
+		walletId,
+		ledgerId,
+		transactions
+	});
 };
 
 export const onWalletError = ({ error: err }: { error: unknown }) => {
 	transactionsCertifiedStore.reset();
 
 	// We get transactions and balance for the same end point therefore if getting certified transactions fails, it also means the balance is incorrect.
-	balanceCertifiedStore.reset();
+	balanceCertifiedStore.resetAll();
 
 	toasts.error({
 		text: get(i18n).errors.wallet_error,
@@ -34,8 +49,16 @@ export const onWalletError = ({ error: err }: { error: unknown }) => {
 	});
 };
 
-export const onWalletCleanUp = ({ transactionIds }: { transactionIds: string[] }) => {
-	transactionsCertifiedStore.cleanUp(transactionIds);
+export const onWalletCleanUp = ({
+	transactionIds,
+	ledgerId,
+	walletId
+}: PostMessageDataResponseWalletCleanUp) => {
+	transactionsCertifiedStore.cleanUp({
+		walletId,
+		ledgerId,
+		transactionIds
+	});
 
 	toasts.error({
 		text: get(i18n).errors.wallet_uncertified_transactions_removed
@@ -57,5 +80,15 @@ export const onSyncExchange = (data: PostMessageDataResponseExchange) => {
 		} else {
 			exchangePricesCanisterDataStore.set({ canisterId, data });
 		}
+	}
+};
+
+export const onSyncIcpToCyclesRate = (data: PostMessageDataResponseIcpToCyclesRate) => {
+	const { rate } = data;
+
+	if (isNullish(rate)) {
+		icpToCyclesRateStore.reset();
+	} else {
+		icpToCyclesRateStore.set(rate);
 	}
 };

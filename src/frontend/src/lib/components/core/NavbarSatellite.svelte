@@ -3,14 +3,13 @@
 	import { fade } from 'svelte/transition';
 	import IconSatellite from '$lib/components/icons/IconSatellite.svelte';
 	import SatelliteEnvironment from '$lib/components/satellites/SatelliteEnvironment.svelte';
-	import SatellitesSwitcher from '$lib/components/satellites/SatellitesSwitcher.svelte';
+	import { layoutTitle } from '$lib/derived/app/layout-title.derived';
 	import { authSignedIn } from '$lib/derived/auth.derived';
-	import { layoutTitle } from '$lib/derived/layout-title.derived';
-	import { satelliteStore, satelliteUi } from '$lib/derived/satellite.derived';
-	import { layoutNavigation } from '$lib/stores/layout-navigation.store';
+	import { satellite, satelliteUi } from '$lib/derived/satellite.derived';
+	import { layoutNavigation } from '$lib/stores/app/layout-navigation.store';
 	import { satelliteName } from '$lib/utils/satellite.utils';
 
-	let label = $derived(nonNullish($satelliteStore) ? satelliteName($satelliteStore) : undefined);
+	let label = $derived(nonNullish($satellite) ? satelliteName($satellite) : undefined);
 
 	let subNavigation = $derived(
 		notEmptyString($layoutTitle) && $layoutNavigation?.data.satellite?.useInPageTitle === false
@@ -32,8 +31,6 @@
 
 			<span class="text current"><span>{label}</span>{@render currentEnvironment()}</span>
 		</span>
-
-		<SatellitesSwitcher />
 
 		{#if subNavigation && nonNullish(Icon)}
 			<span class="sub-navigation">

@@ -303,3 +303,27 @@ export const switchStorageSystemMemory = async ({
 	const { switch_storage_system_memory } = await getSatelliteActor({ satelliteId, identity });
 	await switch_storage_system_memory();
 };
+
+export const setControllers = async ({
+	args,
+	...rest
+}: {
+	args: SatelliteDid.SetControllersArgs;
+	satelliteId: Principal;
+	identity: OptionIdentity;
+}): Promise<[Principal, SatelliteDid.Controller][]> => {
+	const { set_controllers } = await getSatelliteActor(rest);
+	return set_controllers(args);
+};
+
+export const deleteControllers = async ({
+	args,
+	...rest
+}: {
+	args: SatelliteDid.DeleteControllersArgs;
+	satelliteId: Principal;
+	identity: OptionIdentity;
+}): Promise<[Principal, SatelliteDid.Controller][]> => {
+	const { del_controllers } = await getSatelliteActor(rest);
+	return del_controllers(args);
+};

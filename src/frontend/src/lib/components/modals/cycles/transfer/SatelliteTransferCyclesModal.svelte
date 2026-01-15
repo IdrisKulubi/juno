@@ -1,0 +1,38 @@
+<script lang="ts">
+	import type { Principal } from '@icp-sdk/core/principal';
+	import { depositCycles } from '$lib/api/satellites.api';
+	import CanisterTransferCyclesModal from '$lib/components/modals/cycles/transfer/CanisterTransferCyclesModal.svelte';
+	import { authIdentity } from '$lib/derived/auth.derived';
+	import type { JunoModalCyclesSatelliteDetail, JunoModalDetail } from '$lib/types/modal';
+	import { satelliteName } from '$lib/utils/satellite.utils';
+
+	interface Props {
+		detail: JunoModalDetail;
+		onclose: () => void;
+	}
+
+	let { detail, onclose }: Props = $props();
+
+	let { satellite, cycles: currentCycles } = $derived(detail as JunoModalCyclesSatelliteDetail);
+
+	let transferFn: (params: { cycles: bigint; destinationId: Principal }) => Promise<void> =
+		$derived(
+			async (params: { cycles: bigint; destinationId: Principal }) =>
+				await depositCycles({
+					...params,
+					satelliteId: satellite.satellite_id,
+					identity: $authIdentity
+				})
+		);
+</script>
+
+<CanisterTransferCyclesModal
+	{currentCycles}
+	{onclose}
+	segment={{
+		segment: 'satellite',
+		canisterId: satellite.satellite_id.toText(),
+		label: satelliteName(satellite)
+	}}
+	{transferFn}
+/>

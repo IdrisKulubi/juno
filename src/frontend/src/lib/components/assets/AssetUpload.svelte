@@ -1,18 +1,18 @@
 <script lang="ts">
 	import { fromNullable, isNullish, nonNullish, notEmptyString } from '@dfinity/utils';
-	import type { Principal } from '@icp-sdk/core/principal';
 	import { uploadFile } from '@junobuild/core';
 	import { getContext, type Snippet } from 'svelte';
 	import { quintOut } from 'svelte/easing';
 	import { slide } from 'svelte/transition';
 	import type { SatelliteDid } from '$declarations';
 	import DataUpload from '$lib/components/data/DataUpload.svelte';
+	import InputGenerate from '$lib/components/ui/InputGenerate.svelte';
 	import Value from '$lib/components/ui/Value.svelte';
 	import { COLLECTION_DAPP } from '$lib/constants/storage.constants';
-	import { authStore } from '$lib/stores/auth.store';
-	import { busy } from '$lib/stores/busy.store';
-	import { i18n } from '$lib/stores/i18n.store';
-	import { toasts } from '$lib/stores/toasts.store';
+	import { authIdentity } from '$lib/derived/auth.derived';
+	import { busy } from '$lib/stores/app/busy.store';
+	import { i18n } from '$lib/stores/app/i18n.store';
+	import { toasts } from '$lib/stores/app/toasts.store';
 	import { RULES_CONTEXT_KEY, type RulesContext } from '$lib/types/rules.context';
 	import { container } from '$lib/utils/juno.utils';
 
@@ -32,7 +32,12 @@
 
 	let newFileFullPath = $state<string | undefined>(undefined);
 
-	let satelliteId: Principal = $derived($store.satelliteId);
+	let newToken = $state<string | undefined>(undefined);
+
+	// Use UUID - longer than nanoid - for better protection
+	const generateToken = () => (newToken = window.crypto.randomUUID());
+
+	let satelliteId = $derived($store.satelliteId);
 
 	const upload = async (file: File | undefined) => {
 		if (isNullish(file)) {
@@ -50,7 +55,7 @@
 			return;
 		}
 
-		if (isNullish($authStore.identity)) {
+		if (isNullish($authIdentity)) {
 			toasts.error({
 				text: $i18n.authentication.not_signed_in
 			});
@@ -86,29 +91,36 @@
 				...(notEmptyString(newFileFullPath) && {
 					fullPath: newFileFullPath
 				}),
+				...(notEmptyString(newToken) && {
+					token: newToken
+				}),
 				collection,
 				data: file,
 				satellite: {
 					satelliteId: satelliteId.toText(),
-					identity: $authStore.identity,
+					identity: $authIdentity,
 					...container()
 				}
 			});
 
 			onfileuploaded();
-
-			close();
 		} catch (err: unknown) {
 			toasts.error({
 				text: $i18n.errors.upload_error,
 				detail: err
 			});
+		} finally {
+			busy.stop();
 		}
-
-		busy.stop();
 	};
 
+	let editableToken = $state(false);
+
 	const onfilechange = (file: File | undefined) => {
+		// If the asset exist, the token cannot be edited in this component
+		editableToken = nonNullish(file) && isNullish(asset);
+		newToken = undefined;
+
 		// If the asset exist, the full path cannot be edited
 		if (nonNullish(asset)) {
 			newFileFullPath = undefined;
@@ -145,6 +157,23 @@
 					placeholder={$i18n.asset.full_path_description}
 					type="text"
 					bind:value={newFileFullPath}
+				/>
+			</Value>
+		</div>
+	{/if}
+
+	{#if editableToken}
+		<div in:slide={{ delay: 0, duration: 150, easing: quintOut, axis: 'y' }}>
+			<Value ref="token">
+				{#snippet label()}
+					{$i18n.asset.token}
+				{/snippet}
+
+				<InputGenerate
+					generate={generateToken}
+					generateLabel={$i18n.asset.token_generate}
+					inputPlaceholder={$i18n.asset.token_description}
+					bind:inputValue={newToken}
 				/>
 			</Value>
 		</div>

@@ -30,12 +30,14 @@ describe('Observatory > Upgrade', () => {
 	});
 
 	describe('v0.0.9 -> v0.1.0', () => {
-		const upgradeCurrent = async () => {
+		const upgrade0_1_0 = async () => {
 			await tick(pic);
+
+			const destination = await downloadObservatory({ junoVersion: '0.0.51', version: '0.1.0' });
 
 			await pic.upgradeCanister({
 				canisterId: observatoryId,
-				wasm: OBSERVATORY_WASM_PATH,
+				wasm: destination,
 				sender: controller.getPrincipal()
 			});
 		};
@@ -66,20 +68,24 @@ describe('Observatory > Upgrade', () => {
 				email_api_key: [mockObservatoryProxyBearerKey]
 			});
 
-			await upgradeCurrent();
+			await upgrade0_1_0();
 
 			// The random seed generator init is deferred
 			await tick(pic);
 		});
 
 		describe('Deposit cycles notifications', () => {
+			const mockExpectedApiUrl =
+				'https://europe-west6-juno-observatory.cloudfunctions.net/observatory/notifications/email';
+
 			it('should still notify Mission Control with previous interface', async () => {
 				await testDepositedCyclesNotification({
 					kind: { MissionControl: null },
 					url: 'https://console.juno.build/mission-control',
 					moduleName: 'Mission Control',
 					actor,
-					pic
+					pic,
+					expectedApiUrl: mockExpectedApiUrl
 				});
 			});
 
@@ -89,7 +95,8 @@ describe('Observatory > Upgrade', () => {
 					url: 'https://console.juno.build/analytics',
 					moduleName: 'Orbiter',
 					actor,
-					pic
+					pic,
+					expectedApiUrl: mockExpectedApiUrl
 				});
 			});
 
@@ -99,7 +106,8 @@ describe('Observatory > Upgrade', () => {
 					url: `https://console.juno.build/satellite/?s=${mockMissionControlId.toText()}`,
 					moduleName: 'Satellite',
 					actor,
-					pic
+					pic,
+					expectedApiUrl: mockExpectedApiUrl
 				});
 			});
 
@@ -110,7 +118,8 @@ describe('Observatory > Upgrade', () => {
 					moduleName: 'Satellite',
 					metadataName: 'This is a test name',
 					actor,
-					pic
+					pic,
+					expectedApiUrl: mockExpectedApiUrl
 				});
 			});
 		});
@@ -171,12 +180,99 @@ describe('Observatory > Upgrade', () => {
 
 			await assertControllers(actor);
 
-			await upgradeCurrent();
+			await upgrade0_1_0();
 
 			const newActor = pic.createActor<ObservatoryActor>(idlFactoryObservatory, observatoryId);
 			newActor.setIdentity(controller);
 
 			await assertControllers(newActor);
+		});
+	});
+
+	describe('v0.1.1 -> v0.2.0', () => {
+		const upgradeCurrent = async () => {
+			await tick(pic);
+
+			await pic.upgradeCanister({
+				canisterId: observatoryId,
+				wasm: OBSERVATORY_WASM_PATH,
+				sender: controller.getPrincipal()
+			});
+		};
+
+		beforeEach(async () => {
+			pic = await PocketIc.create(inject('PIC_URL'));
+
+			const destination = await downloadObservatory({ junoVersion: '0.0.41', version: '0.0.9' });
+
+			const { actor: c, canisterId: mId } = await pic.setupCanister<ObservatoryActor009>({
+				idlFactory: idlFactoryObservatory009,
+				wasm: destination,
+				arg: missionControlUserInitArgs(controller.getPrincipal()),
+				sender: controller.getPrincipal()
+			});
+
+			observatoryId = mId;
+
+			actor = c;
+			actor.setIdentity(controller);
+
+			// The random seed generator init is deferred
+			await tick(pic);
+
+			const { set_env } = actor;
+
+			await set_env({
+				email_api_key: [mockObservatoryProxyBearerKey]
+			});
+
+			await upgradeCurrent();
+
+			// The random seed generator init is deferred
+			await tick(pic);
+		});
+
+		describe('Deposit cycles notifications', () => {
+			it('should still notify Mission Control with previous interface', async () => {
+				await testDepositedCyclesNotification({
+					kind: { MissionControl: null },
+					url: 'https://console.juno.build/monitoring/?tab=service',
+					moduleName: 'Mission Control',
+					actor,
+					pic
+				});
+			});
+
+			it('should still notify Orbiter with previous interface', async () => {
+				await testDepositedCyclesNotification({
+					kind: { Orbiter: null },
+					url: 'https://console.juno.build/analytics',
+					moduleName: 'Orbiter',
+					actor,
+					pic
+				});
+			});
+
+			it('should still notify Satellite with previous interface', async () => {
+				await testDepositedCyclesNotification({
+					kind: { Satellite: null },
+					url: `https://console.juno.build/satellite/?s=${mockMissionControlId.toText()}`,
+					moduleName: 'Satellite',
+					actor,
+					pic
+				});
+			});
+
+			it('should notify Satellite with name', async () => {
+				await testDepositedCyclesNotification({
+					kind: { Satellite: null },
+					url: `https://console.juno.build/satellite/?s=${mockMissionControlId.toText()}`,
+					moduleName: 'Satellite',
+					metadataName: 'This is a test name',
+					actor,
+					pic
+				});
+			});
 		});
 	});
 });

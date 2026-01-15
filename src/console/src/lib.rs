@@ -1,15 +1,20 @@
 #![deny(clippy::disallowed_methods)]
 
+mod accounts;
 mod api;
 mod auth;
 mod cdn;
 mod certification;
 mod constants;
 mod factory;
+mod fees;
 mod guards;
 mod impls;
 mod memory;
 mod metadata;
+mod payments;
+mod rates;
+mod segments;
 mod store;
 mod types;
 
@@ -17,11 +22,20 @@ use crate::types::interface::AuthenticationArgs;
 use crate::types::interface::AuthenticationResult;
 use crate::types::interface::Config;
 use crate::types::interface::DeleteProposalAssets;
+use crate::types::interface::FeesArgs;
 use crate::types::interface::GetDelegationArgs;
+use crate::types::interface::ListSegmentsArgs;
+use crate::types::interface::SetSegmentMetadataArgs;
+use crate::types::interface::SetSegmentsArgs;
+use crate::types::interface::UnsetSegmentsArgs;
+use crate::types::state::Account;
+use crate::types::state::Accounts;
+use crate::types::state::FactoryFee;
+use crate::types::state::IcpPayments;
+use crate::types::state::IcrcPayments;
 use crate::types::state::InvitationCode;
-use crate::types::state::MissionControl;
-use crate::types::state::MissionControls;
-use crate::types::state::Payments;
+use crate::types::state::Segment;
+use crate::types::state::SegmentKey;
 use candid::Principal;
 use ic_cdk_macros::export_candid;
 use ic_ledger_types::Tokens;
@@ -36,14 +50,16 @@ use junobuild_cdn::proposals::ProposalId;
 use junobuild_cdn::proposals::ProposalType;
 use junobuild_cdn::proposals::RejectProposal;
 use junobuild_collections::types::core::CollectionKey;
-use junobuild_shared::ic::call::ManualReply;
+use junobuild_shared::ic::response::ManualReply;
 use junobuild_shared::rate::types::RateConfig;
 use junobuild_shared::types::core::DomainName;
 use junobuild_shared::types::domain::CustomDomains;
+use junobuild_shared::types::interface::CreateMissionControlArgs;
+use junobuild_shared::types::interface::CreateOrbiterArgs;
 use junobuild_shared::types::interface::CreateSatelliteArgs;
 use junobuild_shared::types::interface::{
-    AssertMissionControlCenterArgs, CreateCanisterArgs, DeleteControllersArgs,
-    GetCreateCanisterFeeArgs, SetControllersArgs,
+    AssertMissionControlCenterArgs, DeleteControllersArgs, GetCreateCanisterFeeArgs,
+    SetControllersArgs,
 };
 use junobuild_shared::types::list::{ListParams, ListResults};
 use junobuild_shared::types::state::Controllers;

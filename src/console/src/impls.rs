@@ -1,18 +1,18 @@
-use crate::constants::{ORBITER_CREATION_FEE_ICP, SATELLITE_CREATION_FEE_ICP};
 use crate::memory::manager::init_stable_state;
-use crate::types::ledger::Payment;
-use crate::types::state::{Fee, Fees, HeapState, MissionControl, OpenIdData, Rate, Rates, State};
+use crate::types::ledger::{Fee, IcpPayment, IcrcPayment, IcrcPaymentKey};
+use crate::types::state::{Account, HeapState, Segment, SegmentKey, State, StorableSegmentKind};
+use candid::Principal;
 use ic_cdk::api::time;
+use ic_ledger_types::{BlockIndex, Tokens};
 use ic_stable_structures::storable::Bound;
 use ic_stable_structures::Storable;
-use junobuild_auth::openid::types::interface::OpenIdCredential;
-use junobuild_auth::profile::types::OpenIdProfile;
-use junobuild_shared::rate::constants::DEFAULT_RATE_CONFIG;
-use junobuild_shared::rate::types::RateTokens;
-use junobuild_shared::serializers::{
+use junobuild_shared::ledger::types::cycles::CyclesTokens;
+use junobuild_shared::memory::serializers::{
     deserialize_from_bytes, serialize_into_bytes, serialize_to_bytes,
 };
+use junobuild_shared::types::state::{Metadata, SegmentId, Timestamp, UserId};
 use std::borrow::Cow;
+use std::collections::HashMap;
 
 impl Default for State {
     fn default() -> Self {
@@ -23,130 +23,170 @@ impl Default for State {
     }
 }
 
-impl Default for Rates {
-    fn default() -> Self {
+impl Storable for Account {
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
+        serialize_to_bytes(self)
+    }
+
+    fn into_bytes(self) -> Vec<u8> {
+        serialize_into_bytes(&self)
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        deserialize_from_bytes(bytes)
+    }
+
+    const BOUND: Bound = Bound::Unbounded;
+}
+
+impl Storable for IcpPayment {
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
+        serialize_to_bytes(self)
+    }
+
+    fn into_bytes(self) -> Vec<u8> {
+        serialize_into_bytes(&self)
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        deserialize_from_bytes(bytes)
+    }
+
+    const BOUND: Bound = Bound::Unbounded;
+}
+
+impl Storable for Segment {
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
+        serialize_to_bytes(self)
+    }
+
+    fn into_bytes(self) -> Vec<u8> {
+        serialize_into_bytes(&self)
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        deserialize_from_bytes(bytes)
+    }
+
+    const BOUND: Bound = Bound::Unbounded;
+}
+
+impl Storable for SegmentKey {
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
+        serialize_to_bytes(self)
+    }
+
+    fn into_bytes(self) -> Vec<u8> {
+        serialize_into_bytes(&self)
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        deserialize_from_bytes(bytes)
+    }
+
+    const BOUND: Bound = Bound::Unbounded;
+}
+
+impl Storable for IcrcPayment {
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
+        serialize_to_bytes(self)
+    }
+
+    fn into_bytes(self) -> Vec<u8> {
+        serialize_into_bytes(&self)
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        deserialize_from_bytes(bytes)
+    }
+
+    const BOUND: Bound = Bound::Unbounded;
+}
+
+impl Storable for IcrcPaymentKey {
+    fn to_bytes(&self) -> Cow<'_, [u8]> {
+        serialize_to_bytes(self)
+    }
+
+    fn into_bytes(self) -> Vec<u8> {
+        serialize_into_bytes(&self)
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        deserialize_from_bytes(bytes)
+    }
+
+    const BOUND: Bound = Bound::Unbounded;
+}
+
+impl Segment {
+    pub fn init_metadata(name: &Option<String>) -> Metadata {
+        match name {
+            Some(name) => HashMap::from([("name".to_string(), name.to_owned())]),
+            None => HashMap::new(),
+        }
+    }
+
+    pub fn new(segment_id: &SegmentId, metadata: Option<Metadata>) -> Self {
         let now = time();
 
-        let tokens: RateTokens = RateTokens {
-            tokens: 1,
+        Self {
+            segment_id: *segment_id,
+            metadata: metadata.unwrap_or(HashMap::new()),
+            created_at: now,
             updated_at: now,
-        };
-
-        Rates {
-            satellites: Rate {
-                config: DEFAULT_RATE_CONFIG,
-                tokens: tokens.clone(),
-            },
-            mission_controls: Rate {
-                config: DEFAULT_RATE_CONFIG,
-                tokens: tokens.clone(),
-            },
-            orbiters: Rate {
-                config: DEFAULT_RATE_CONFIG,
-                tokens,
-            },
         }
     }
-}
 
-impl Default for Fees {
-    fn default() -> Self {
-        let now = time();
+    pub fn with_metadata(&self, metadata: &Metadata) -> Self {
+        let updated_at: Timestamp = time();
 
-        Fees {
-            satellite: Fee {
-                fee: SATELLITE_CREATION_FEE_ICP,
-                updated_at: now,
-            },
-            orbiter: Fee {
-                fee: ORBITER_CREATION_FEE_ICP,
-                updated_at: now,
-            },
-        }
-    }
-}
-
-impl Storable for MissionControl {
-    fn to_bytes(&self) -> Cow<'_, [u8]> {
-        serialize_to_bytes(self)
-    }
-
-    fn into_bytes(self) -> Vec<u8> {
-        serialize_into_bytes(&self)
-    }
-
-    fn from_bytes(bytes: Cow<[u8]>) -> Self {
-        deserialize_from_bytes(bytes)
-    }
-
-    const BOUND: Bound = Bound::Unbounded;
-}
-
-impl Storable for Payment {
-    fn to_bytes(&self) -> Cow<'_, [u8]> {
-        serialize_to_bytes(self)
-    }
-
-    fn into_bytes(self) -> Vec<u8> {
-        serialize_into_bytes(&self)
-    }
-
-    fn from_bytes(bytes: Cow<[u8]>) -> Self {
-        deserialize_from_bytes(bytes)
-    }
-
-    const BOUND: Bound = Bound::Unbounded;
-}
-
-impl OpenIdProfile for OpenIdData {
-    fn email(&self) -> Option<&str> {
-        self.email.as_deref()
-    }
-    fn name(&self) -> Option<&str> {
-        self.name.as_deref()
-    }
-    fn given_name(&self) -> Option<&str> {
-        self.given_name.as_deref()
-    }
-    fn family_name(&self) -> Option<&str> {
-        self.family_name.as_deref()
-    }
-    fn picture(&self) -> Option<&str> {
-        self.picture.as_deref()
-    }
-    fn locale(&self) -> Option<&str> {
-        self.locale.as_deref()
-    }
-}
-
-impl OpenIdData {
-    pub fn merge(existing: &OpenIdData, credential: &OpenIdCredential) -> Self {
         Self {
-            email: credential.email.clone().or(existing.email.clone()),
-            name: credential.name.clone().or(existing.name.clone()),
-            given_name: credential
-                .given_name
-                .clone()
-                .or(existing.given_name.clone()),
-            family_name: credential
-                .family_name
-                .clone()
-                .or(existing.family_name.clone()),
-            picture: credential.picture.clone().or(existing.picture.clone()),
-            locale: credential.locale.clone().or(existing.locale.clone()),
+            metadata: metadata.clone(),
+            updated_at,
+            ..self.clone()
         }
     }
 }
 
-impl From<&OpenIdCredential> for OpenIdData {
-    fn from(credential: &OpenIdCredential) -> Self {
+impl SegmentKey {
+    pub fn from(user: &UserId, segment_id: &SegmentId, segment_kind: StorableSegmentKind) -> Self {
         Self {
-            email: credential.email.clone(),
-            name: credential.name.clone(),
-            given_name: credential.given_name.clone(),
-            family_name: credential.family_name.clone(),
-            picture: credential.picture.clone(),
-            locale: credential.locale.clone(),
+            user: *user,
+            segment_kind,
+            segment_id: *segment_id,
+        }
+    }
+}
+
+impl IcrcPaymentKey {
+    pub fn from(ledger_id: &Principal, block_index: &BlockIndex) -> Self {
+        Self {
+            ledger_id: *ledger_id,
+            block_index: *block_index,
+        }
+    }
+}
+
+impl Fee {
+    pub fn amount(&self) -> u64 {
+        match self {
+            Fee::Cycles(cycles) => cycles.e12s(),
+            Fee::ICP(tokens) => tokens.e8s(),
+        }
+    }
+
+    pub fn as_icp(&self) -> Result<Tokens, String> {
+        match self {
+            Fee::ICP(tokens) => Ok(*tokens),
+            Fee::Cycles(_) => Err("Expected ICP fee but got Cycles fee".to_string()),
+        }
+    }
+
+    pub fn as_cycles(&self) -> Result<CyclesTokens, String> {
+        match self {
+            Fee::Cycles(cycles) => Ok(cycles.clone()),
+            Fee::ICP(_) => Err("Expected Cycles fee but got ICP fee".to_string()),
         }
     }
 }

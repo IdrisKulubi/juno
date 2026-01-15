@@ -1,20 +1,17 @@
 <script lang="ts">
-	import type { MissionControlDid } from '$declarations';
-	import CanisterBuyCycleExpress from '$lib/components/canister/CanisterBuyCycleExpress.svelte';
-	import CanisterDelete from '$lib/components/canister/CanisterDelete.svelte';
-	import CanisterStopStart from '$lib/components/canister/CanisterStopStart.svelte';
-	import CanisterTransferCycles from '$lib/components/canister/CanisterTransferCycles.svelte';
-	import TopUp from '$lib/components/canister/TopUp.svelte';
+	import CanisterTransferCycles from '$lib/components/canister/cycles/CanisterTransferCycles.svelte';
+	import CanisterDelete from '$lib/components/canister/lifecycle/CanisterDelete.svelte';
+	import CanisterStopStart from '$lib/components/canister/lifecycle/CanisterStopStart.svelte';
+	import TopUp from '$lib/components/canister/top-up/TopUp.svelte';
 	import SegmentActions from '$lib/components/segments/SegmentActions.svelte';
-	import { listCustomDomains } from '$lib/services/custom-domain.services';
-	import { busy } from '$lib/stores/busy.store';
-	import { i18n } from '$lib/stores/i18n.store';
-	import { toasts } from '$lib/stores/toasts.store';
+	import { listCustomDomains } from '$lib/services/satellite/custom-domain.services';
+	import { busy } from '$lib/stores/app/busy.store';
 	import type { CanisterSyncData as CanisterSyncDataType } from '$lib/types/canister';
+	import type { Satellite } from '$lib/types/satellite';
 	import { emit } from '$lib/utils/events.utils';
 
 	interface Props {
-		satellite: MissionControlDid.Satellite;
+		satellite: Satellite;
 		canister: CanisterSyncDataType | undefined;
 		monitoringEnabled: boolean;
 	}
@@ -45,14 +42,10 @@
 	const onDeleteSatellite = async () => {
 		close();
 
-		// TODO: can be removed once the mission control is patched to disable monitoring on delete
-		if (monitoringEnabled) {
-			toasts.warn($i18n.monitoring.warn_monitoring_enabled);
-			return;
-		}
-
 		busy.start();
 
+		// The modal displays the instruction to remove the domains first before delete
+		// using the related store as source of information.
 		const { success } = await listCustomDomains({
 			satelliteId: satellite.satellite_id,
 			reload: true
@@ -70,6 +63,7 @@
 				type: 'delete_satellite',
 				detail: {
 					satellite,
+					monitoringEnabled,
 					cycles: canister?.data?.canister?.cycles ?? 0n
 				}
 			}
@@ -84,8 +78,6 @@
 
 	{#snippet cyclesActions()}
 		<CanisterTransferCycles {canister} onclick={onTransferCycles} />
-
-		<CanisterBuyCycleExpress canisterId={satellite.satellite_id} />
 	{/snippet}
 
 	{#snippet lifecycleActions()}

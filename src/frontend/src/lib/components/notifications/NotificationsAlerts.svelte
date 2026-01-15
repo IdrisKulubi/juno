@@ -3,9 +3,10 @@
 	import IconMissionControl from '$lib/components/icons/IconMissionControl.svelte';
 	import IconSatellite from '$lib/components/icons/IconSatellite.svelte';
 	import NotificationsCanisterAlert from '$lib/components/notifications/NotificationsCanisterAlert.svelte';
+	import NotificationsOutOfSyncAlert from '$lib/components/notifications/NotificationsOutOfSyncAlert.svelte';
 	import NotificationsUpgrade from '$lib/components/notifications/NotificationsUpgrade.svelte';
-	import { satelliteStore } from '$lib/derived/satellite.derived';
-	import { i18n } from '$lib/stores/i18n.store';
+	import { satellite } from '$lib/derived/satellite.derived';
+	import { i18n } from '$lib/stores/app/i18n.store';
 	import type { CanisterData, CanisterWarning } from '$lib/types/canister';
 	import { overviewLink } from '$lib/utils/nav.utils';
 
@@ -20,6 +21,7 @@
 		alerts: boolean;
 		upgradeWarning: boolean;
 		canisterWarnings: boolean;
+		outOfSyncWarnings: boolean;
 	}
 
 	let {
@@ -32,15 +34,14 @@
 		close,
 		alerts,
 		upgradeWarning,
-		canisterWarnings
+		canisterWarnings,
+		outOfSyncWarnings
 	}: Props = $props();
 
 	let noAlerts = $derived(!alerts);
 </script>
 
-{#if noAlerts}
-	{$i18n.notifications.no_alerts}
-{:else}
+{#snippet warnings()}
 	{#if canisterWarnings}
 		<NotificationsCanisterAlert
 			{close}
@@ -64,13 +65,23 @@
 			{close}
 			cyclesIcon={IconSatellite}
 			data={satelliteCanisterData}
-			href={overviewLink($satelliteStore?.satellite_id)}
+			href={overviewLink($satellite?.satellite_id)}
 			segment="satellite"
 			warnings={satelliteWarnings}
 		/>
 	{/if}
 
+	{#if outOfSyncWarnings}
+		<NotificationsOutOfSyncAlert {close} />
+	{/if}
+
 	{#if upgradeWarning}
 		<NotificationsUpgrade {close} />
 	{/if}
+{/snippet}
+
+{#if noAlerts}
+	{$i18n.notifications.no_alerts}
+{:else}
+	{@render warnings()}
 {/if}

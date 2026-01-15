@@ -1,5 +1,6 @@
 import type { ICDid } from '$declarations';
 import { getAgent } from '$lib/api/_agent/_agent.api';
+import type { GetActorParams } from '$lib/api/actors/actor.api';
 import { getICActor } from '$lib/api/actors/actor.ic.api';
 import type { CanisterInfo, CanisterLogVisibility, CanisterStatus } from '$lib/types/canister';
 import type { Snapshots } from '$lib/types/progress-snapshot';
@@ -25,12 +26,12 @@ const toLogVisibility = (log_visibility: ICDid.log_visibility): CanisterLogVisib
 
 export const canisterStatus = async ({
 	canisterId,
-	identity
+	...rest
 }: {
 	canisterId: string;
 	identity: Identity;
-}): Promise<CanisterInfo> => {
-	const { canister_status } = await getICActor({ identity });
+} & Pick<GetActorParams, 'certified'>): Promise<CanisterInfo> => {
+	const { canister_status } = await getICActor(rest);
 
 	const {
 		cycles,
@@ -122,6 +123,17 @@ export const canisterStop = async ({
 	return stop_canister({ canister_id: canisterId });
 };
 
+export const canisterDelete = async ({
+	canisterId,
+	identity
+}: {
+	canisterId: Principal;
+	identity: Identity;
+}): Promise<void> => {
+	const { delete_canister } = await getICActor({ identity });
+	return delete_canister({ canister_id: canisterId });
+};
+
 export const canisterLogs = async ({
 	canisterId,
 	identity
@@ -165,7 +177,9 @@ export const createSnapshot = async ({
 
 	return await take_canister_snapshot({
 		canister_id: canisterId,
-		replace_snapshot: toNullable(snapshotId)
+		replace_snapshot: toNullable(snapshotId),
+		uninstall_code: toNullable(),
+		sender_canister_version: toNullable()
 	});
 };
 

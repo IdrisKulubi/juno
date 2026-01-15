@@ -2,11 +2,15 @@ import {
 	type ConsoleActor,
 	type ConsoleActor0014,
 	type ConsoleActor008,
+	type ConsoleActor015,
+	type ConsoleActor020,
+	type ConsoleDid,
 	type MissionControlActor,
 	idlFactoryConsole,
 	idlFactoryMissionControl
 } from '$declarations';
-import { type Actor, PocketIc } from '@dfinity/pic';
+import type { MissionControlId } from '$lib/types/mission-control';
+import { type Actor, IcpFeaturesConfig, PocketIc, SubnetStateType } from '@dfinity/pic';
 import {
 	arrayBufferToUint8Array,
 	arrayOfNumberToUint8Array,
@@ -19,6 +23,7 @@ import { Ed25519KeyIdentity } from '@icp-sdk/core/identity';
 import type { Principal } from '@icp-sdk/core/principal';
 import { readFile } from 'node:fs/promises';
 import { inject } from 'vitest';
+import { CONSOLE_ID, TEST_FEES } from '../constants/console-tests.constants';
 import { mockScript } from '../mocks/storage.mocks';
 import { tick } from './pic-tests.utils';
 import {
@@ -76,7 +81,7 @@ const uploadSegment = async ({
 }: {
 	segment: 'satellite' | 'mission_control' | 'orbiter';
 	version: string;
-	actor: Actor<ConsoleActor | ConsoleActor0014>;
+	actor: Actor<ConsoleActor | ConsoleActor0014 | ConsoleActor015 | ConsoleActor020>;
 	proposalId: bigint;
 }) => {
 	const init_proposal_asset_upload =
@@ -195,7 +200,7 @@ export const deploySegments = async ({
 	withMissionControl = true,
 	withSatellite = true
 }: {
-	actor: Actor<ConsoleActor | ConsoleActor0014>;
+	actor: Actor<ConsoleActor | ConsoleActor0014 | ConsoleActor015 | ConsoleActor020>;
 	withOrbiter?: boolean;
 	withMissionControl?: boolean;
 	withSatellite?: boolean;
@@ -286,12 +291,12 @@ export const testReleases = async (actor: Actor<ConsoleActor008>) => {
 	expect(fromNullable(mission_control)).toEqual(versionMissionControl);
 };
 
-export const initMissionControls = async ({
+export const deprecatedInitMissionControls = async ({
 	actor,
 	pic,
 	length
 }: {
-	actor: Actor<ConsoleActor | ConsoleActor008 | ConsoleActor0014>;
+	actor: Actor<ConsoleActor008 | ConsoleActor0014 | ConsoleActor015 | ConsoleActor020>;
 	pic: PocketIc;
 	length: number;
 }): Promise<Identity[]> => {
@@ -309,13 +314,118 @@ export const initMissionControls = async ({
 	return users;
 };
 
+export const initUserAccounts = async ({
+	actor,
+	pic,
+	length
+}: {
+	actor: Actor<ConsoleActor>;
+	pic: PocketIc;
+	length: number;
+}): Promise<Identity[]> => {
+	const users = await Promise.all(Array.from({ length }).map(() => Ed25519KeyIdentity.generate()));
+
+	for (const user of users) {
+		actor.setIdentity(user);
+
+		const { get_or_init_account } = actor;
+		await get_or_init_account();
+
+		await tick(pic);
+	}
+
+	return users;
+};
+
+export const initUserAccountAndMissionControl = async ({
+	actor,
+	pic,
+	user: customUser
+}: {
+	actor: Actor<ConsoleActor>;
+	pic: PocketIc;
+	user?: Ed25519KeyIdentity;
+}): Promise<{ user: Ed25519KeyIdentity; missionControlId: MissionControlId }> => {
+	const user = customUser ?? Ed25519KeyIdentity.generate();
+
+	actor.setIdentity(user);
+
+	const { get_or_init_account, create_mission_control } = actor;
+	await get_or_init_account();
+
+	const missionControlId = await create_mission_control({
+		subnet_id: []
+	});
+
+	await tick(pic);
+
+	return { user, missionControlId };
+};
+
+export const initMissionControls = async ({
+	actor,
+	pic,
+	length
+}: {
+	actor: Actor<ConsoleActor>;
+	pic: PocketIc;
+	length: number;
+}): Promise<Identity[]> => {
+	const users = await Promise.all(Array.from({ length }).map(() => Ed25519KeyIdentity.generate()));
+
+	for (const user of users) {
+		actor.setIdentity(user);
+
+		const { get_or_init_account, create_mission_control } = actor;
+		await get_or_init_account();
+
+		await create_mission_control({
+			subnet_id: []
+		});
+
+		await tick(pic);
+	}
+
+	return users;
+};
+
+export const initAccounts = async ({
+	actor,
+	pic,
+	length
+}: {
+	actor: Actor<ConsoleActor>;
+	pic: PocketIc;
+	length: number;
+}): Promise<{ identity: Identity; account: ConsoleDid.Account }[]> => {
+	const users = await Promise.all(Array.from({ length }).map(() => Ed25519KeyIdentity.generate()));
+
+	const results = [];
+
+	for (const user of users) {
+		actor.setIdentity(user);
+
+		const { get_or_init_account } = actor;
+		const account = await get_or_init_account();
+
+		results.push({
+			identity: user,
+			account
+		});
+
+		await tick(pic);
+	}
+
+	return results;
+};
+
 export const testSatelliteExists = async ({
 	users,
 	actor,
 	pic
 }: {
 	users: Identity[];
-	actor: Actor<ConsoleActor | ConsoleActor008 | ConsoleActor0014>;
+	actor: Actor<ConsoleActor015 | ConsoleActor008 | ConsoleActor0014>;
 	pic: PocketIc;
 }) => {
 	const { list_user_mission_control_centers } = actor;
@@ -485,10 +595,13 @@ export const assertAssetServed = async ({
 	expect(decoder.decode(body)).toEqual(content);
 };
 
+/**
+ * @deprecated
+ */
 export const updateRateConfig = async ({
 	actor
 }: {
-	actor: Actor<ConsoleActor008 | ConsoleActor0014 | ConsoleActor>;
+	actor: Actor<ConsoleActor008 | ConsoleActor0014 | ConsoleActor015 | ConsoleActor020>;
 }) => {
 	const { update_rate_config } = actor;
 
@@ -502,19 +615,50 @@ export const updateRateConfig = async ({
 	await update_rate_config({ MissionControl: null }, config);
 };
 
+export const setRateConfig = async ({ actor }: { actor: Actor<ConsoleActor> }) => {
+	const { set_rate_config } = actor;
+
+	const config = {
+		max_tokens: 100n,
+		time_per_token_ns: 60n
+	};
+
+	await set_rate_config({ Satellite: null }, config);
+	await set_rate_config({ Orbiter: null }, config);
+	await set_rate_config({ MissionControl: null }, config);
+};
+
 export const setupConsole = async ({
 	dateTime,
-	withApplyRateTokens = true
+	withApplyRateTokens = true,
+	withLedger = false,
+	withSegments = false,
+	withFee = false
 }: {
 	dateTime?: Date;
 	withApplyRateTokens?: boolean;
+	withLedger?: boolean;
+	withSegments?: boolean;
+	withFee?: boolean;
 }): Promise<{
 	pic: PocketIc;
 	controller: Ed25519KeyIdentity;
 	canisterId: Principal;
 	actor: Actor<ConsoleActor>;
 }> => {
-	const pic = await PocketIc.create(inject('PIC_URL'));
+	const pic = await PocketIc.create(inject('PIC_URL'), {
+		nns: {
+			enableBenchmarkingInstructionLimits: false,
+			enableDeterministicTimeSlicing: false,
+			state: { type: SubnetStateType.New }
+		},
+		...(withLedger && {
+			icpFeatures: {
+				icpToken: IcpFeaturesConfig.DefaultConfig,
+				cyclesToken: IcpFeaturesConfig.DefaultConfig
+			}
+		})
+	});
 
 	const currentDate = dateTime ?? new Date(2021, 6, 10, 0, 0, 0, 0);
 	await pic.setTime(currentDate.getTime());
@@ -524,19 +668,34 @@ export const setupConsole = async ({
 	const { actor, canisterId } = await pic.setupCanister<ConsoleActor>({
 		idlFactory: idlFactoryConsole,
 		wasm: CONSOLE_WASM_PATH,
-		sender: controller.getPrincipal()
+		sender: controller.getPrincipal(),
+		targetCanisterId: CONSOLE_ID
 	});
+
+	actor.setIdentity(controller);
+
+	if (withSegments) {
+		await deploySegments({ actor });
+	}
 
 	if (withApplyRateTokens) {
 		await configMissionControlRateTokens({
 			actor,
 			controller,
-			max_tokens: 10n,
+			max_tokens: 100n,
 			time_per_token_ns: 1_000_000_000n // 1s per token
 		});
 
 		await pic.advanceTime(120_000);
 		await tick(pic);
+	}
+
+	if (withFee) {
+		const { set_fee } = actor;
+
+		await set_fee({ Satellite: null }, TEST_FEES);
+		await set_fee({ Orbiter: null }, TEST_FEES);
+		await set_fee({ MissionControl: null }, TEST_FEES);
 	}
 
 	return { pic, controller, actor, canisterId };
@@ -555,9 +714,9 @@ export const configMissionControlRateTokens = async ({
 }) => {
 	actor.setIdentity(controller);
 
-	const { update_rate_config } = actor;
+	const { set_rate_config } = actor;
 
-	await update_rate_config(
+	await set_rate_config(
 		{ MissionControl: null },
 		{
 			max_tokens,

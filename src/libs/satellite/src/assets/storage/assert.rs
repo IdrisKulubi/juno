@@ -11,7 +11,7 @@ use junobuild_collections::constants::assets::COLLECTION_ASSET_KEY;
 use junobuild_collections::types::core::CollectionKey;
 use junobuild_collections::types::rules::Permission;
 use junobuild_shared::assert::assert_version;
-use junobuild_shared::controllers::{controller_can_write, is_controller};
+use junobuild_shared::segments::controllers::{controller_can_write, is_controller};
 use junobuild_shared::types::state::Controllers;
 use junobuild_storage::errors::{
     JUNO_STORAGE_ERROR_ASSET_NOT_FOUND, JUNO_STORAGE_ERROR_CANNOT_READ_ASSET,
@@ -91,7 +91,7 @@ pub fn assert_create_batch(
     Ok(())
 }
 
-pub fn assert_delete_asset(
+pub fn assert_write_asset(
     context: &StoreContext,
     &AssertContext { rule, auth_config }: &AssertContext,
     asset: &Asset,
@@ -117,9 +117,11 @@ pub fn assert_delete_asset(
 
     increment_and_assert_rate_runtime(context.collection, &rule.rate_config)?;
 
-    invoke_assert_delete_asset(&context.caller, asset)?;
-
     Ok(())
+}
+
+pub fn assert_delete_asset(context: &StoreContext, asset: &Asset) -> Result<(), String> {
+    invoke_assert_delete_asset(&context.caller, asset)
 }
 
 fn assert_read_permission(

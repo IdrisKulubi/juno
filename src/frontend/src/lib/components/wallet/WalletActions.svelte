@@ -1,22 +1,30 @@
 <script lang="ts">
-	import WalletGetICP from '$lib/components/wallet/WalletGetICP.svelte';
+	import BuyCycles from '$lib/components/wallet/BuyCycles.svelte';
+	import WalletGetToken from '$lib/components/wallet/WalletGetToken.svelte';
 	import WalletReceive from '$lib/components/wallet/WalletReceive.svelte';
 	import WalletSend from '$lib/components/wallet/WalletSend.svelte';
-	import type { MissionControlId } from '$lib/types/mission-control';
+	import ConvertIcp from '$lib/components/wallet/convert/ConvertIcp.svelte';
+	import type { SelectedToken, SelectedWallet } from '$lib/schemas/wallet.schema';
 
 	interface Props {
-		missionControlId: MissionControlId;
+		selectedWallet: SelectedWallet;
+		selectedToken: SelectedToken;
 		onsend?: () => void;
+		onconvert?: () => void;
 		onreceive: () => void;
 	}
 
-	let { missionControlId, onreceive, onsend }: Props = $props();
+	let { selectedWallet, selectedToken, onreceive, onconvert, onsend }: Props = $props();
 </script>
 
 <div class="toolbar">
-	<WalletGetICP {missionControlId} />
+	<BuyCycles {selectedToken} {selectedWallet} />
 
 	<WalletReceive {onreceive} />
 
-	<WalletSend {onsend} />
+	<WalletSend {onsend} {selectedToken} {selectedWallet} />
+
+	<ConvertIcp {onconvert} {selectedToken} {selectedWallet} />
 </div>
+
+<WalletGetToken {selectedWallet} />

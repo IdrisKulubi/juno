@@ -4,7 +4,7 @@ use crate::types::config::{
     StorageConfigRedirects, StorageConfigRewrites,
 };
 use crate::types::interface::{AssetEncodingNoContent, AssetNoContent, SetStorageConfig};
-use crate::types::state::StorageHeapState;
+use crate::types::state::{AssetAccessToken, StorageHeapState};
 use crate::types::store::{Asset, AssetEncoding, AssetKey, Batch, BatchExpiry};
 use ic_cdk::api::time;
 use ic_stable_structures::storable::Bound;
@@ -12,13 +12,13 @@ use ic_stable_structures::Storable;
 use junobuild_collections::constants::assets::DEFAULT_ASSETS_COLLECTIONS;
 use junobuild_collections::types::interface::SetRule;
 use junobuild_collections::types::rules::{Memory, Rule, Rules};
-use junobuild_shared::serializers::{
+use junobuild_shared::data::version::{next_version, next_version_from};
+use junobuild_shared::memory::serializers::{
     deserialize_from_bytes, serialize_into_bytes, serialize_to_bytes,
 };
 use junobuild_shared::types::core::{Blob, Hash, Hashable};
 use junobuild_shared::types::state::Timestamped;
 use junobuild_shared::types::state::{Timestamp, Version, Versioned};
-use junobuild_shared::version::{next_version, next_version_from};
 use sha2::{Digest, Sha256};
 use std::borrow::Cow;
 use std::cmp::Ordering;
@@ -221,6 +221,22 @@ impl Asset {
             created_at,
             updated_at,
             version: Some(version),
+        }
+    }
+
+    pub fn update_token(current_asset: &Asset, token: &AssetAccessToken) -> Self {
+        let now = time();
+
+        let version = next_version(&Some(current_asset));
+
+        Self {
+            key: AssetKey {
+                token: token.clone(),
+                ..current_asset.key.clone()
+            },
+            updated_at: now,
+            version: Some(version),
+            ..current_asset.clone()
         }
     }
 }

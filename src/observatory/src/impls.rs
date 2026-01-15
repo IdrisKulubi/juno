@@ -8,7 +8,7 @@ use crate::types::state::{HeapState, Notification, NotificationKey, Notification
 use ic_cdk::api::time;
 use ic_stable_structures::storable::Bound;
 use ic_stable_structures::Storable;
-use junobuild_shared::serializers::{
+use junobuild_shared::memory::serializers::{
     deserialize_from_bytes, serialize_into_bytes, serialize_to_bytes,
 };
 use junobuild_shared::types::interface::NotifyArgs;
@@ -59,12 +59,16 @@ impl Storable for NotificationKey {
 
 impl NotificationKey {
     pub fn idempotency_key(&self) -> String {
-        format!(
+        let key = format!(
             "{}___{}___{}",
             self.segment_id.to_text(),
             self.created_at,
             self.nonce
-        )
+        );
+
+        // We're likely to generate 66 chars, but to be future-proof and for simplicity, we truncate
+        // to 256 as required by the documentation: https://resend.com/docs/api-reference/emails/send-email#param-idempotency-key
+        key.chars().take(256).collect()
     }
 }
 
@@ -125,7 +129,9 @@ impl Notification {
     fn segment_url(&self) -> String {
         match self.segment.kind {
             SegmentKind::Orbiter => "https://console.juno.build/analytics".to_string(),
-            SegmentKind::MissionControl => "https://console.juno.build/mission-control".to_string(),
+            SegmentKind::MissionControl => {
+                "https://console.juno.build/monitoring/?tab=service".to_string()
+            }
             SegmentKind::Satellite => format!(
                 "https://console.juno.build/satellite/?s={}",
                 self.segment.id

@@ -1,3 +1,4 @@
+import type { FactoryCreateProgressState } from '$lib/types/progress-factory-create';
 import type { SnapshotProgressState } from '$lib/types/progress-snapshot';
 import type { ProgressStepState } from '$lib/types/progress-step';
 import type { MonitoringStrategyProgressState } from '$lib/types/progress-strategy';
@@ -8,6 +9,7 @@ export const mapProgressState = (
 		| UpgradeCodeProgressState
 		| SnapshotProgressState
 		| MonitoringStrategyProgressState
+		| FactoryCreateProgressState
 		| undefined
 ): ProgressStepState => {
 	switch (state) {
@@ -17,6 +19,8 @@ export const mapProgressState = (
 			return 'completed';
 		case 'in_progress':
 			return 'in_progress';
+		case 'warning':
+			return 'warning';
 		default:
 			return 'next';
 	}

@@ -264,7 +264,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				const assertAllowed = async (params: { actorIdentity?: Identity } = {}) => {
-					await expect(createDocs(params)).resolves.not.toThrow();
+					await expect(createDocs(params)).resolves.not.toThrowError();
 				};
 
 				it('should set many documents if no config', async () => {
@@ -290,7 +290,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				const assertAllowed = async () => {
-					await expect(deleteDoc()).resolves.not.toThrow();
+					await expect(deleteDoc()).resolves.not.toThrowError();
 				};
 
 				it('should delete document if no config', async () => {
@@ -321,7 +321,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				const assertAllowed = async (params: { actorIdentity?: Identity } = {}) => {
-					await expect(deleteDocs(params)).resolves.not.toThrow();
+					await expect(deleteDocs(params)).resolves.not.toThrowError();
 				};
 
 				it('should delete documents if no config', async () => {
@@ -345,7 +345,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				const assertAllowed = async (params: { actorIdentity?: Identity } = {}) => {
-					await expect(deleteFilteredDocs(params)).resolves.not.toThrow();
+					await expect(deleteFilteredDocs(params)).resolves.not.toThrowError();
 				};
 
 				it('should delete filtered document if no config', async () => {
@@ -369,7 +369,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				const assertAllowed = async (params: { actorIdentity?: Identity } = {}) => {
-					await expect(listDocs(params)).resolves.not.toThrow();
+					await expect(listDocs(params)).resolves.not.toThrowError();
 				};
 
 				it('should list documents if no config', async () => {
@@ -393,7 +393,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				const assertAllowed = async (params: { actorIdentity?: Identity } = {}) => {
-					await expect(countDocs(params)).resolves.not.toThrow();
+					await expect(countDocs(params)).resolves.not.toThrowError();
 				};
 
 				it('should count document if no config', async () => {
@@ -443,7 +443,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				const assertAllowed = async (params: { actorIdentity?: Identity } = {}) => {
-					await expect(initAsset(params)).resolves.not.toThrow();
+					await expect(initAsset(params)).resolves.not.toThrowError();
 				};
 
 				it('should init asset upload if no config', async () => {
@@ -494,7 +494,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				const assertAllowed = async (params: { actorIdentity?: Identity } = {}) => {
-					await expect(deleteFilteredAssets(params)).resolves.not.toThrow();
+					await expect(deleteFilteredAssets(params)).resolves.not.toThrowError();
 				};
 
 				it('should delete assets if no config', async () => {
@@ -518,7 +518,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				const assertAllowed = async (params: { actorIdentity?: Identity } = {}) => {
-					await expect(listAssets(params)).resolves.not.toThrow();
+					await expect(listAssets(params)).resolves.not.toThrowError();
 				};
 
 				it('should list assets if no config', async () => {
@@ -542,7 +542,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				const assertAllowed = async (params: { actorIdentity?: Identity } = {}) => {
-					await expect(countAssets(params)).resolves.not.toThrow();
+					await expect(countAssets(params)).resolves.not.toThrowError();
 				};
 
 				it('should count assets if no config', async () => {
@@ -601,7 +601,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				const assertAllowed = async (params: { actorIdentity?: Identity } = {}) => {
-					await expect(deleteAsset(params)).resolves.not.toThrow();
+					await expect(deleteAsset(params)).resolves.not.toThrowError();
 				};
 
 				it('should delete asset if no config', async () => {
@@ -632,10 +632,41 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				const assertAllowed = async (params: { actorIdentity?: Identity } = {}) => {
-					await expect(deleteAssets(params)).resolves.not.toThrow();
+					await expect(deleteAssets(params)).resolves.not.toThrowError();
 				};
 
 				it('should delete assets if no config', async () => {
+					await assertAllowed();
+				});
+			});
+
+			describe('set an asset token', () => {
+				const setAssetToken = async ({
+					actorIdentity
+				}: { actorIdentity?: Identity } = {}): Promise<void> => {
+					actor.setIdentity(actorIdentity ?? user);
+
+					const { set_asset_token } = actor;
+
+					await set_asset_token(collection, fullPath, toNullable(nanoid()));
+				};
+
+				beforeEach(async () => {
+					await createUser(user);
+
+					await uploadAsset({
+						full_path: fullPath,
+						name: filename,
+						collection,
+						actor
+					});
+				});
+
+				const assertAllowed = async (params: { actorIdentity?: Identity } = {}) => {
+					await expect(setAssetToken(params)).resolves.not.toThrowError();
+				};
+
+				it('should set an asset token if no config', async () => {
 					await assertAllowed();
 				});
 			});
@@ -813,7 +844,7 @@ describe('Satellite > Allowed Callers', () => {
 
 					await setSomeAllowedCaller();
 
-					await expect(createDoc()).rejects.toThrow(JUNO_AUTH_ERROR_CALLER_NOT_ALLOWED);
+					await expect(createDoc()).rejects.toThrowError(JUNO_AUTH_ERROR_CALLER_NOT_ALLOWED);
 				});
 
 				const assertAllowed = async (params: { actorIdentity?: Identity } = {}) => {
@@ -872,15 +903,15 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should not set many documents if not allowed', async () => {
-					await expect(createDocs()).resolves.not.toThrow();
+					await expect(createDocs()).resolves.not.toThrowError();
 
 					await setSomeAllowedCaller();
 
-					await expect(createDocs()).rejects.toThrow(JUNO_AUTH_ERROR_CALLER_NOT_ALLOWED);
+					await expect(createDocs()).rejects.toThrowError(JUNO_AUTH_ERROR_CALLER_NOT_ALLOWED);
 				});
 
 				const assertAllowed = async (params: { actorIdentity?: Identity } = {}) => {
-					await expect(createDocs(params)).resolves.not.toThrow();
+					await expect(createDocs(params)).resolves.not.toThrowError();
 				};
 
 				it('should set many documents if no rules', async () => {
@@ -888,7 +919,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should set many documents if empty allowed callers', async () => {
-					await expect(createDocs()).resolves.not.toThrow();
+					await expect(createDocs()).resolves.not.toThrowError();
 
 					await setEmptyAllowedCallers();
 
@@ -896,7 +927,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should set many documents if controller', async () => {
-					await expect(createDocs({ actorIdentity: controller })).resolves.not.toThrow();
+					await expect(createDocs({ actorIdentity: controller })).resolves.not.toThrowError();
 
 					await setSomeAllowedCaller();
 
@@ -924,15 +955,15 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should not delete document if not allowed', async () => {
-					await expect(deleteDoc()).resolves.not.toThrow();
+					await expect(deleteDoc()).resolves.not.toThrowError();
 
 					await setSomeAllowedCaller();
 
-					await expect(deleteDoc()).rejects.toThrow(JUNO_AUTH_ERROR_CALLER_NOT_ALLOWED);
+					await expect(deleteDoc()).rejects.toThrowError(JUNO_AUTH_ERROR_CALLER_NOT_ALLOWED);
 				});
 
 				const assertAllowed = async (params: { actorIdentity?: Identity } = {}) => {
-					await expect(deleteDoc(params)).resolves.not.toThrow();
+					await expect(deleteDoc(params)).resolves.not.toThrowError();
 				};
 
 				it('should delete document if no rules', async () => {
@@ -940,7 +971,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should delete document if empty allowed callers', async () => {
-					await expect(deleteDoc()).resolves.not.toThrow();
+					await expect(deleteDoc()).resolves.not.toThrowError();
 
 					await setEmptyAllowedCallers();
 
@@ -948,7 +979,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should delete document if controller', async () => {
-					await expect(deleteDoc({ actorIdentity: controller })).resolves.not.toThrow();
+					await expect(deleteDoc({ actorIdentity: controller })).resolves.not.toThrowError();
 
 					await setSomeAllowedCaller();
 
@@ -981,15 +1012,15 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should not delete documents if not allowed', async () => {
-					await expect(deleteDocs()).resolves.not.toThrow();
+					await expect(deleteDocs()).resolves.not.toThrowError();
 
 					await setSomeAllowedCaller();
 
-					await expect(deleteDocs()).rejects.toThrow(JUNO_AUTH_ERROR_CALLER_NOT_ALLOWED);
+					await expect(deleteDocs()).rejects.toThrowError(JUNO_AUTH_ERROR_CALLER_NOT_ALLOWED);
 				});
 
 				const assertAllowed = async (params: { actorIdentity?: Identity } = {}) => {
-					await expect(deleteDocs(params)).resolves.not.toThrow();
+					await expect(deleteDocs(params)).resolves.not.toThrowError();
 				};
 
 				it('should delete documents if no rules', async () => {
@@ -997,7 +1028,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should delete documents if empty allowed callers', async () => {
-					await expect(deleteDocs()).resolves.not.toThrow();
+					await expect(deleteDocs()).resolves.not.toThrowError();
 
 					await setEmptyAllowedCallers();
 
@@ -1005,7 +1036,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should delete document if controller', async () => {
-					await expect(deleteDocs({ actorIdentity: controller })).resolves.not.toThrow();
+					await expect(deleteDocs({ actorIdentity: controller })).resolves.not.toThrowError();
 
 					await setSomeAllowedCaller();
 
@@ -1031,15 +1062,17 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should not delete documents if not allowed', async () => {
-					await expect(deleteFilteredDocs()).resolves.not.toThrow();
+					await expect(deleteFilteredDocs()).resolves.not.toThrowError();
 
 					await setSomeAllowedCaller();
 
-					await expect(deleteFilteredDocs()).rejects.toThrow(JUNO_AUTH_ERROR_CALLER_NOT_ALLOWED);
+					await expect(deleteFilteredDocs()).rejects.toThrowError(
+						JUNO_AUTH_ERROR_CALLER_NOT_ALLOWED
+					);
 				});
 
 				const assertAllowed = async (params: { actorIdentity?: Identity } = {}) => {
-					await expect(deleteFilteredDocs(params)).resolves.not.toThrow();
+					await expect(deleteFilteredDocs(params)).resolves.not.toThrowError();
 				};
 
 				it('should delete filtered document if no rules', async () => {
@@ -1047,7 +1080,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should delete filtered document if empty allowed callers', async () => {
-					await expect(deleteFilteredDocs()).resolves.not.toThrow();
+					await expect(deleteFilteredDocs()).resolves.not.toThrowError();
 
 					await setEmptyAllowedCallers();
 
@@ -1055,7 +1088,9 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should delete filtered document if controller', async () => {
-					await expect(deleteFilteredDocs({ actorIdentity: controller })).resolves.not.toThrow();
+					await expect(
+						deleteFilteredDocs({ actorIdentity: controller })
+					).resolves.not.toThrowError();
 
 					await setSomeAllowedCaller();
 
@@ -1081,15 +1116,15 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should not list documents if not allowed', async () => {
-					await expect(listDocs()).resolves.not.toThrow();
+					await expect(listDocs()).resolves.not.toThrowError();
 
 					await setSomeAllowedCaller();
 
-					await expect(listDocs()).rejects.toThrow(JUNO_AUTH_ERROR_CALLER_NOT_ALLOWED);
+					await expect(listDocs()).rejects.toThrowError(JUNO_AUTH_ERROR_CALLER_NOT_ALLOWED);
 				});
 
 				const assertAllowed = async (params: { actorIdentity?: Identity } = {}) => {
-					await expect(listDocs(params)).resolves.not.toThrow();
+					await expect(listDocs(params)).resolves.not.toThrowError();
 				};
 
 				it('should list documents if no rules', async () => {
@@ -1097,7 +1132,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should list documents if empty allowed callers', async () => {
-					await expect(listDocs()).resolves.not.toThrow();
+					await expect(listDocs()).resolves.not.toThrowError();
 
 					await setEmptyAllowedCallers();
 
@@ -1105,7 +1140,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should list documents if controller', async () => {
-					await expect(listDocs({ actorIdentity: controller })).resolves.not.toThrow();
+					await expect(listDocs({ actorIdentity: controller })).resolves.not.toThrowError();
 
 					await setSomeAllowedCaller();
 
@@ -1131,15 +1166,15 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should not count documents if not allowed', async () => {
-					await expect(countDocs()).resolves.not.toThrow();
+					await expect(countDocs()).resolves.not.toThrowError();
 
 					await setSomeAllowedCaller();
 
-					await expect(countDocs()).rejects.toThrow(JUNO_AUTH_ERROR_CALLER_NOT_ALLOWED);
+					await expect(countDocs()).rejects.toThrowError(JUNO_AUTH_ERROR_CALLER_NOT_ALLOWED);
 				});
 
 				const assertAllowed = async (params: { actorIdentity?: Identity } = {}) => {
-					await expect(countDocs(params)).resolves.not.toThrow();
+					await expect(countDocs(params)).resolves.not.toThrowError();
 				};
 
 				it('should count document if no rules', async () => {
@@ -1147,7 +1182,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should count document if empty allowed callers', async () => {
-					await expect(countDocs()).resolves.not.toThrow();
+					await expect(countDocs()).resolves.not.toThrowError();
 
 					await setEmptyAllowedCallers();
 
@@ -1155,7 +1190,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should count document if controller', async () => {
-					await expect(countDocs({ actorIdentity: controller })).resolves.not.toThrow();
+					await expect(countDocs({ actorIdentity: controller })).resolves.not.toThrowError();
 
 					await setSomeAllowedCaller();
 
@@ -1209,15 +1244,15 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should not init asset upload if not allowed', async () => {
-					await expect(initAsset()).resolves.not.toThrow();
+					await expect(initAsset()).resolves.not.toThrowError();
 
 					await setSomeAllowedCaller();
 
-					await expect(initAsset()).rejects.toThrow(JUNO_AUTH_ERROR_CALLER_NOT_ALLOWED);
+					await expect(initAsset()).rejects.toThrowError(JUNO_AUTH_ERROR_CALLER_NOT_ALLOWED);
 				});
 
 				const assertAllowed = async (params: { actorIdentity?: Identity } = {}) => {
-					await expect(initAsset(params)).resolves.not.toThrow();
+					await expect(initAsset(params)).resolves.not.toThrowError();
 				};
 
 				it('should init asset upload if no rules', async () => {
@@ -1225,7 +1260,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should init asset upload if empty allowed callers', async () => {
-					await expect(initAsset()).resolves.not.toThrow();
+					await expect(initAsset()).resolves.not.toThrowError();
 
 					await setEmptyAllowedCallers();
 
@@ -1233,7 +1268,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should init asset upload if controller', async () => {
-					await expect(initAsset({ actorIdentity: controller })).resolves.not.toThrow();
+					await expect(initAsset({ actorIdentity: controller })).resolves.not.toThrowError();
 
 					await setSomeAllowedCaller();
 
@@ -1312,15 +1347,17 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should not delete assets if banned', async () => {
-					await expect(deleteFilteredAssets()).resolves.not.toThrow();
+					await expect(deleteFilteredAssets()).resolves.not.toThrowError();
 
 					await setSomeAllowedCaller();
 
-					await expect(deleteFilteredAssets()).rejects.toThrow(JUNO_AUTH_ERROR_CALLER_NOT_ALLOWED);
+					await expect(deleteFilteredAssets()).rejects.toThrowError(
+						JUNO_AUTH_ERROR_CALLER_NOT_ALLOWED
+					);
 				});
 
 				const assertAllowed = async (params: { actorIdentity?: Identity } = {}) => {
-					await expect(deleteFilteredAssets(params)).resolves.not.toThrow();
+					await expect(deleteFilteredAssets(params)).resolves.not.toThrowError();
 				};
 
 				it('should delete assets if no rules', async () => {
@@ -1328,7 +1365,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should delete assets if empty allowed callers', async () => {
-					await expect(deleteFilteredAssets()).resolves.not.toThrow();
+					await expect(deleteFilteredAssets()).resolves.not.toThrowError();
 
 					await setEmptyAllowedCallers();
 
@@ -1336,7 +1373,9 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should delete assets if controller', async () => {
-					await expect(deleteFilteredAssets({ actorIdentity: controller })).resolves.not.toThrow();
+					await expect(
+						deleteFilteredAssets({ actorIdentity: controller })
+					).resolves.not.toThrowError();
 
 					await setSomeAllowedCaller();
 
@@ -1362,15 +1401,15 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should not list assets if not allowed', async () => {
-					await expect(listAssets()).resolves.not.toThrow();
+					await expect(listAssets()).resolves.not.toThrowError();
 
 					await setSomeAllowedCaller();
 
-					await expect(listAssets()).rejects.toThrow(JUNO_AUTH_ERROR_CALLER_NOT_ALLOWED);
+					await expect(listAssets()).rejects.toThrowError(JUNO_AUTH_ERROR_CALLER_NOT_ALLOWED);
 				});
 
 				const assertAllowed = async (params: { actorIdentity?: Identity } = {}) => {
-					await expect(listAssets(params)).resolves.not.toThrow();
+					await expect(listAssets(params)).resolves.not.toThrowError();
 				};
 
 				it('should list assets if no rules', async () => {
@@ -1378,7 +1417,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should list assets if empty allowed callers', async () => {
-					await expect(listAssets()).resolves.not.toThrow();
+					await expect(listAssets()).resolves.not.toThrowError();
 
 					await setEmptyAllowedCallers();
 
@@ -1386,7 +1425,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should list assets if controller', async () => {
-					await expect(listAssets({ actorIdentity: controller })).resolves.not.toThrow();
+					await expect(listAssets({ actorIdentity: controller })).resolves.not.toThrowError();
 
 					await setSomeAllowedCaller();
 
@@ -1412,15 +1451,15 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should not count assets if not allowed', async () => {
-					await expect(countAssets()).resolves.not.toThrow();
+					await expect(countAssets()).resolves.not.toThrowError();
 
 					await setSomeAllowedCaller();
 
-					await expect(countAssets()).rejects.toThrow(JUNO_AUTH_ERROR_CALLER_NOT_ALLOWED);
+					await expect(countAssets()).rejects.toThrowError(JUNO_AUTH_ERROR_CALLER_NOT_ALLOWED);
 				});
 
 				const assertAllowed = async (params: { actorIdentity?: Identity } = {}) => {
-					await expect(countAssets(params)).resolves.not.toThrow();
+					await expect(countAssets(params)).resolves.not.toThrowError();
 				};
 
 				it('should count assets if no rules', async () => {
@@ -1428,7 +1467,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should count assets if empty allowed callers', async () => {
-					await expect(countAssets()).resolves.not.toThrow();
+					await expect(countAssets()).resolves.not.toThrowError();
 
 					await setEmptyAllowedCallers();
 
@@ -1436,7 +1475,7 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should count assets if controller', async () => {
-					await expect(countAssets({ actorIdentity: controller })).resolves.not.toThrow();
+					await expect(countAssets({ actorIdentity: controller })).resolves.not.toThrowError();
 
 					await setSomeAllowedCaller();
 
@@ -1526,11 +1565,11 @@ describe('Satellite > Allowed Callers', () => {
 				it('should not delete an asset if not allowed', async () => {
 					await setSomeAllowedCaller();
 
-					await expect(deleteAsset()).rejects.toThrow(JUNO_AUTH_ERROR_CALLER_NOT_ALLOWED);
+					await expect(deleteAsset()).rejects.toThrowError(JUNO_AUTH_ERROR_CALLER_NOT_ALLOWED);
 				});
 
 				const assertAllowed = async (params: { actorIdentity?: Identity } = {}) => {
-					await expect(deleteAsset(params)).resolves.not.toThrow();
+					await expect(deleteAsset(params)).resolves.not.toThrowError();
 				};
 
 				it('should delete asset if no rules', async () => {
@@ -1577,11 +1616,11 @@ describe('Satellite > Allowed Callers', () => {
 				it('should not delete assets if not allowed', async () => {
 					await setSomeAllowedCaller();
 
-					await expect(deleteAssets()).rejects.toThrow(JUNO_AUTH_ERROR_CALLER_NOT_ALLOWED);
+					await expect(deleteAssets()).rejects.toThrowError(JUNO_AUTH_ERROR_CALLER_NOT_ALLOWED);
 				});
 
 				const assertAllowed = async (params: { actorIdentity?: Identity } = {}) => {
-					await expect(deleteAssets(params)).resolves.not.toThrow();
+					await expect(deleteAssets(params)).resolves.not.toThrowError();
 				};
 
 				it('should delete assets if no rules', async () => {
@@ -1595,6 +1634,57 @@ describe('Satellite > Allowed Callers', () => {
 				});
 
 				it('should delete assets if controller', async () => {
+					await setSomeAllowedCaller();
+
+					await assertAllowed({ actorIdentity: controller });
+				});
+			});
+
+			describe('set an asset token', () => {
+				const setAssetToken = async ({
+					actorIdentity
+				}: { actorIdentity?: Identity } = {}): Promise<void> => {
+					actor.setIdentity(actorIdentity ?? user);
+
+					const { set_asset_token } = actor;
+
+					await set_asset_token(collection, fullPath, toNullable(nanoid()));
+				};
+
+				beforeEach(async () => {
+					await resetAuthConfig();
+
+					await createUser(user);
+
+					await uploadAsset({
+						full_path: fullPath,
+						name: filename,
+						collection,
+						actor
+					});
+				});
+
+				it('should not set an asset token if not allowed', async () => {
+					await setSomeAllowedCaller();
+
+					await expect(setAssetToken()).rejects.toThrowError(JUNO_AUTH_ERROR_CALLER_NOT_ALLOWED);
+				});
+
+				const assertAllowed = async (params: { actorIdentity?: Identity } = {}) => {
+					await expect(setAssetToken(params)).resolves.not.toThrowError();
+				};
+
+				it('should set asset token if no rules', async () => {
+					await assertAllowed();
+				});
+
+				it('should set asset token if empty allowed callers', async () => {
+					await setEmptyAllowedCallers();
+
+					await assertAllowed();
+				});
+
+				it('should set asset token if controller', async () => {
 					await setSomeAllowedCaller();
 
 					await assertAllowed({ actorIdentity: controller });

@@ -21,8 +21,6 @@ export const AUTH_POPUP_WIDTH = 576;
 export const AUTH_POPUP_HEIGHT = 625;
 
 export const E8S_PER_ICP = 100_000_000n;
-export const IC_TRANSACTION_FEE_ICP = 10_000n;
-export const TOP_UP_NETWORK_FEES = 2n * IC_TRANSACTION_FEE_ICP;
 
 export const CYCLES_WARNING = 500_000_000_000n;
 export const MEMORY_HEAP_WARNING = 900_000_000n; // 900mb
@@ -38,6 +36,9 @@ export const INTERNET_IDENTITY_CANISTER_ID = 'rdmx6-jaaaa-aaaaa-aaadq-cai';
 export const CMC_CANISTER_ID = 'rkp4c-7iaaa-aaaaa-aaaca-cai';
 export const OBSERVATORY_CANISTER_ID = 'klbfr-lqaaa-aaaak-qbwsa-cai';
 export const ICP_LEDGER_CANISTER_ID = 'ryjl3-tyaaa-aaaaa-aaaba-cai';
+export const ICP_INDEX_CANISTER_ID = 'qhbym-qaaaa-aaaaa-aaafq-cai';
+export const CYCLES_LEDGER_CANISTER_ID = 'um5iw-rqaaa-aaaaq-qaaba-cai';
+export const CYCLES_INDEX_CANISTER_ID = 'ul4oc-4iaaa-aaaaq-qaabq-cai';
 
 export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 

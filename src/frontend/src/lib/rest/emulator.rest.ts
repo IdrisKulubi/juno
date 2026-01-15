@@ -1,7 +1,8 @@
-import { i18n } from '$lib/stores/i18n.store';
+import type { LedgerIdText, WalletId } from '$lib/schemas/wallet.schema';
+import { i18n } from '$lib/stores/app/i18n.store';
 import { assertNonNullish, isNullish } from '@dfinity/utils';
 import { type PrincipalText, PrincipalTextSchema } from '@dfinity/zod-schemas';
-import type { Principal } from '@icp-sdk/core/principal';
+import { encodeIcrcAccount } from '@icp-sdk/canisters/ledger/icrc';
 import { get } from 'svelte/store';
 
 export const getEmulatorMainIdentity = async (): Promise<PrincipalText> => {
@@ -17,7 +18,7 @@ export const getEmulatorMainIdentity = async (): Promise<PrincipalText> => {
 	});
 
 	if (!response.ok) {
-		throw new Error(get(i18n).emulator.error_get_identities);
+		throw new Error(get(i18n).emulator.error_fetching_emulator, { cause: response });
 	}
 
 	const result: Record<string, string> = await response.json();
@@ -32,13 +33,41 @@ export const getEmulatorMainIdentity = async (): Promise<PrincipalText> => {
 };
 
 export const emulatorLedgerTransfer = async ({
-	missionControlId
+	walletId,
+	ledgerId,
+	amount
 }: {
-	missionControlId: Principal;
+	walletId: WalletId;
+	ledgerId: LedgerIdText;
+	amount: bigint;
 }) => {
 	const { VITE_EMULATOR_ADMIN_URL } = import.meta.env;
 
 	assertNonNullish(VITE_EMULATOR_ADMIN_URL);
 
-	await fetch(`${VITE_EMULATOR_ADMIN_URL}/ledger/transfer/?to=${missionControlId.toText()}`);
+	const response = await fetch(
+		`${VITE_EMULATOR_ADMIN_URL}/ledger/transfer/?to=${encodeIcrcAccount(walletId)}&ledgerId=${ledgerId}&amount=${amount}`
+	);
+
+	if (!response.ok) {
+		throw new Error(get(i18n).emulator.error_fetching_emulator, { cause: response });
+	}
+};
+
+export const emulatorObservatoryMonitoringOpenId = async ({
+	action
+}: {
+	action: 'start' | 'stop';
+}) => {
+	const { VITE_EMULATOR_ADMIN_URL } = import.meta.env;
+
+	assertNonNullish(VITE_EMULATOR_ADMIN_URL);
+
+	const response = await fetch(
+		`${VITE_EMULATOR_ADMIN_URL}/observatory/monitoring/openid/?action=${action}`
+	);
+
+	if (!response.ok) {
+		throw new Error(get(i18n).emulator.error_fetching_emulator, { cause: response });
+	}
 };

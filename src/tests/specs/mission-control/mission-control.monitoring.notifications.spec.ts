@@ -52,15 +52,15 @@ describe('Mission Control > Notifications', () => {
 		consoleActor = c;
 		consoleActor.setIdentity(controller);
 
-		const { update_rate_config } = consoleActor;
+		const { set_rate_config } = consoleActor;
 
 		const config = {
 			max_tokens: 1_000n,
 			time_per_token_ns: 60_000_000_000n / 1000n // 60ns per token
 		};
 
-		await update_rate_config({ Satellite: null }, config);
-		await update_rate_config({ MissionControl: null }, config);
+		await set_rate_config({ Satellite: null }, config);
+		await set_rate_config({ MissionControl: null }, config);
 
 		await deploySegments({ actor: consoleActor });
 
@@ -96,10 +96,10 @@ describe('Mission Control > Notifications', () => {
 
 		consoleActor.setIdentity(user);
 
-		const { get_user_mission_control_center } = consoleActor;
-		const missionControl = await get_user_mission_control_center();
+		const { get_account } = consoleActor;
+		const account = await get_account();
 
-		const missionControlId = fromNullable(fromNullable(missionControl)?.mission_control_id ?? []);
+		const missionControlId = fromNullable(fromNullable(account)?.mission_control_id ?? []);
 
 		assertNonNullish(missionControlId);
 
@@ -183,7 +183,9 @@ describe('Mission Control > Notifications', () => {
 			const missionControlStrategy: MissionControlDid.CyclesMonitoringStrategy = {
 				BelowThreshold: {
 					// This way the mission control can consume some of its cycles already requires cycles
-					min_cycles: BigInt(Math.min(missionControlCurrentCycles - 100_000_000_000, 100_000)),
+					min_cycles: BigInt(
+						Math.min(Number(missionControlCurrentCycles) - 100_000_000_000, 100_000)
+					),
 					fund_cycles: 100_000n
 				}
 			};
@@ -462,7 +464,7 @@ describe('Mission Control > Notifications', () => {
 					templateHtml: FAILED_DEPOSIT_CYCLES_TEMPLATE_HTML,
 					templateTitle: `❗️Cycles Deposit Failed on Your Mission Control`,
 					moduleName: 'Mission Control',
-					url: 'https://console.juno.build/mission-control',
+					url: 'https://console.juno.build/monitoring/?tab=service',
 					expectedIdempotencyKeySegmentId: missionControlId,
 					expectedTimestamp,
 					pic

@@ -3,19 +3,17 @@ import {
 	type MissionControlActor,
 	type MissionControlDid
 } from '$declarations';
-import { PocketIc, SubnetStateType, type Actor } from '@dfinity/pic';
-import { AccountIdentifier, type LedgerCanisterOptions } from '@icp-sdk/canisters/ledger/icp';
+import { IcpFeaturesConfig, PocketIc, SubnetStateType, type Actor } from '@dfinity/pic';
+import { AccountIdentifier } from '@icp-sdk/canisters/ledger/icp';
 import { AnonymousIdentity } from '@icp-sdk/core/agent';
 import { Ed25519KeyIdentity } from '@icp-sdk/core/identity';
 import type { Principal } from '@icp-sdk/core/principal';
 import { inject } from 'vitest';
-import { LEDGER_ID } from '../../constants/ledger-tests.contants';
+import { ICP_LEDGER_ID } from '../../constants/ledger-tests.contants';
 import { MISSION_CONTROL_ADMIN_CONTROLLER_ERROR_MSG } from '../../constants/mission-control-tests.constants';
-import { setupLedger } from '../../utils/ledger-tests.utils';
+import { transferToken } from '../../utils/ledger-tests.utils';
 import { missionControlUserInitArgs } from '../../utils/mission-control-tests.utils';
 import { MISSION_CONTROL_WASM_PATH } from '../../utils/setup-tests.utils';
-
-type LedgerActor = LedgerCanisterOptions['serviceOverride'];
 
 describe('Mission Control > Wallet', () => {
 	let pic: PocketIc;
@@ -54,6 +52,10 @@ describe('Mission Control > Wallet', () => {
 				enableBenchmarkingInstructionLimits: false,
 				enableDeterministicTimeSlicing: false,
 				state: { type: SubnetStateType.New }
+			},
+			icpFeatures: {
+				icpToken: IcpFeaturesConfig.DefaultConfig,
+				cyclesToken: IcpFeaturesConfig.DefaultConfig
 			}
 		});
 	});
@@ -83,7 +85,7 @@ describe('Mission Control > Wallet', () => {
 			it('should throw errors on icp transfer', async () => {
 				const { icp_transfer } = actor;
 
-				await expect(icp_transfer(args)).rejects.toThrow(
+				await expect(icp_transfer(args)).rejects.toThrowError(
 					MISSION_CONTROL_ADMIN_CONTROLLER_ERROR_MSG
 				);
 			});
@@ -91,7 +93,7 @@ describe('Mission Control > Wallet', () => {
 			it('should throw errors on icrc transfer', async () => {
 				const { icrc_transfer } = actor;
 
-				await expect(icrc_transfer(LEDGER_ID, arg)).rejects.toThrow(
+				await expect(icrc_transfer(ICP_LEDGER_ID, arg)).rejects.toThrowError(
 					MISSION_CONTROL_ADMIN_CONTROLLER_ERROR_MSG
 				);
 			});
@@ -115,15 +117,10 @@ describe('Mission Control > Wallet', () => {
 	});
 
 	describe('owner', () => {
-		let ledgerActor: Actor<LedgerActor>;
-
 		beforeAll(async () => {
 			await initMissionControl(controller.getPrincipal());
 
 			actor.setIdentity(controller);
-
-			const { actor: c } = await setupLedger({ pic, controller });
-			ledgerActor = c;
 		});
 
 		describe('InsufficientFunds', () => {
@@ -148,7 +145,7 @@ describe('Mission Control > Wallet', () => {
 			it('should fail at icrc transfer', async () => {
 				const { icrc_transfer } = actor;
 
-				const result = await icrc_transfer(LEDGER_ID, arg);
+				const result = await icrc_transfer(ICP_LEDGER_ID, arg);
 
 				if ('Ok' in result) {
 					throw new Error('Unexpected result. Icrc transfer should have failed.');
@@ -164,15 +161,9 @@ describe('Mission Control > Wallet', () => {
 
 		describe('Transfer success', () => {
 			beforeAll(async () => {
-				const { icrc1_transfer } = ledgerActor;
-
-				await icrc1_transfer({
-					amount: 5_500_010_000n,
-					to: { owner: missionControlId, subaccount: [] },
-					fee: [],
-					memo: [],
-					from_subaccount: [],
-					created_at_time: []
+				await transferToken({
+					pic,
+					owner: missionControlId
 				});
 			});
 
@@ -185,19 +176,19 @@ describe('Mission Control > Wallet', () => {
 					throw new Error('Unexpected result. Icrc transfer should have succeeded.');
 				}
 
-				expect(result.Ok).toEqual(2n);
+				expect(result.Ok).toEqual(4n);
 			});
 
 			it('should execute icrc transfer', async () => {
 				const { icrc_transfer } = actor;
 
-				const result = await icrc_transfer(LEDGER_ID, arg);
+				const result = await icrc_transfer(ICP_LEDGER_ID, arg);
 
 				if ('Err' in result) {
 					throw new Error('Unexpected result. Icrc transfer should have succeeded.');
 				}
 
-				expect(result.Ok).toEqual(3n);
+				expect(result.Ok).toEqual(5n);
 			});
 		});
 	});

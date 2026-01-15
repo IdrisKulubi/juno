@@ -1,12 +1,14 @@
 use crate::cdn::certified_assets::upgrade::defer_init_certified_assets;
 use crate::cdn::lifecycle::init_cdn_storage_heap_state;
+use crate::fees::init_factory_fees;
 use crate::memory::manager::{get_memory_upgrades, init_stable_state, STATE};
-use crate::types::state::{Fees, HeapState, Rates, ReleasesMetadata, State};
+use crate::rates::init::init_factory_rates;
+use crate::types::state::{HeapState, ReleasesMetadata, State};
 use ciborium::{from_reader, into_writer};
 use ic_cdk_macros::{init, post_upgrade, pre_upgrade};
-use junobuild_shared::controllers::init_admin_controllers;
 use junobuild_shared::ic::api::caller;
-use junobuild_shared::upgrade::{read_post_upgrade, write_pre_upgrade};
+use junobuild_shared::memory::upgrade::{read_post_upgrade, write_pre_upgrade};
+use junobuild_shared::segments::controllers::init_admin_controllers;
 use std::collections::HashMap;
 
 #[init]
@@ -18,8 +20,8 @@ fn init() {
         payments: HashMap::new(),
         invitation_codes: HashMap::new(),
         controllers: init_admin_controllers(&[manager]),
-        rates: Rates::default(),
-        fees: Fees::default(),
+        factory_fees: Some(init_factory_fees()),
+        factory_rates: Some(init_factory_rates()),
         storage: init_cdn_storage_heap_state(),
         authentication: None,
         releases_metadata: ReleasesMetadata::default(),

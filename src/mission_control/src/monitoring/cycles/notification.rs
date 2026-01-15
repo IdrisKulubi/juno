@@ -1,12 +1,11 @@
 use crate::constants::DELAY_BETWEEN_FUNDING_FAILURE_NOTIFICATION_NS;
+use crate::factory::store::{get_orbiter, get_satellite};
 use crate::monitoring::cycles::utils::{get_deposited_cycles, get_funding_failure};
 use crate::monitoring::monitor::get_monitoring_history;
 use crate::monitoring::observatory::notify_observatory;
-use crate::segments::store::{get_orbiter, get_satellite};
 use crate::types::interface::GetMonitoringHistory;
 use crate::user::store::{get_config, get_metadata, get_user};
 use canfund::manager::record::CanisterRecord;
-use ic_cdk::futures::spawn_017_compat;
 use ic_cdk::management_canister::CanisterId;
 use ic_cdk_timers::set_timer;
 use junobuild_shared::ic::api::{id, print};
@@ -21,7 +20,9 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 pub fn defer_notify(records: HashMap<CanisterId, CanisterRecord>) {
-    set_timer(Duration::ZERO, || spawn_017_compat(notify(records)));
+    set_timer(Duration::ZERO, async {
+        notify(records).await;
+    });
 }
 
 async fn notify(records: HashMap<CanisterId, CanisterRecord>) {

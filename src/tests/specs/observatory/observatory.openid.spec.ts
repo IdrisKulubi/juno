@@ -53,6 +53,12 @@ describe('Observatory > OpenId', async () => {
 			await assertOpenIdHttpsOutcalls({ pic, jwks: mockJwks });
 		});
 
+		it('should get openid monitoring enabled', async () => {
+			const { is_openid_monitoring_enabled } = actor;
+
+			await expect(is_openid_monitoring_enabled()).resolves.toBeTruthy();
+		});
+
 		it('should provide certificate', async () => {
 			await assertGetCertificate({ version: 1n, actor, jwks: mockJwks });
 		});
@@ -60,7 +66,7 @@ describe('Observatory > OpenId', async () => {
 		it('should throw error if openid scheduler is already running', async () => {
 			const { start_openid_monitoring } = actor;
 
-			await expect(start_openid_monitoring()).rejects.toThrow(
+			await expect(start_openid_monitoring()).rejects.toThrowError(
 				'OpenID scheduler for Google already running'
 			);
 		});
@@ -89,6 +95,12 @@ describe('Observatory > OpenId', async () => {
 			await expect(stop_openid_monitoring()).resolves.toBeNull();
 		});
 
+		it('should get openid monitoring disabled', async () => {
+			const { is_openid_monitoring_enabled } = actor;
+
+			await expect(is_openid_monitoring_enabled()).resolves.toBeFalsy();
+		});
+
 		it('should still provide certificate', async () => {
 			await assertGetCertificate({ version: 2n, actor, jwks: mockJwks });
 		});
@@ -112,7 +124,7 @@ describe('Observatory > OpenId', async () => {
 		it('should throw error if openid scheduler is already stopped', async () => {
 			const { stop_openid_monitoring } = actor;
 
-			await expect(stop_openid_monitoring()).rejects.toThrow(
+			await expect(stop_openid_monitoring()).rejects.toThrowError(
 				'OpenID scheduler for Google is not running'
 			);
 		});

@@ -9,17 +9,15 @@
 	import IconDatastore from '$lib/components/icons/IconDatastore.svelte';
 	import IconFunctions from '$lib/components/icons/IconFunctions.svelte';
 	import IconHosting from '$lib/components/icons/IconHosting.svelte';
-	import IconMissionControl from '$lib/components/icons/IconMissionControl.svelte';
 	import IconSatellite from '$lib/components/icons/IconSatellite.svelte';
 	import IconStorage from '$lib/components/icons/IconStorage.svelte';
 	import IconTelescope from '$lib/components/icons/IconTelescope.svelte';
 	import IconUpgradeDock from '$lib/components/icons/IconUpgradeDock.svelte';
-	import IconWallet from '$lib/components/icons/IconWallet.svelte';
 	import Menu from '$lib/components/ui/Menu.svelte';
-	import { menuCollapsed, menuExpanded } from '$lib/derived/layout-menu.derived';
-	import { pageSatelliteId } from '$lib/derived/page.derived.svelte';
-	import { isSatelliteRoute } from '$lib/derived/route.derived.svelte';
-	import { i18n } from '$lib/stores/i18n.store';
+	import { menuCollapsed, menuExpanded } from '$lib/derived/app/layout-menu.derived';
+	import { pageSatelliteId } from '$lib/derived/app/page.derived.svelte.js';
+	import { isSatelliteRoute } from '$lib/derived/app/route.derived.svelte.js';
+	import { i18n } from '$lib/stores/app/i18n.store';
 	import { isRouteSelected } from '$lib/utils/nav.utils';
 
 	let routeId: string | null = $derived(page.route.id);
@@ -126,28 +124,6 @@
 			>
 				<IconTelescope />
 				<span>{$i18n.monitoring.title}</span>
-			</a>
-
-			<a
-				class="link not-themed"
-				class:collapsed={$menuCollapsed}
-				class:selected={isRouteSelected({ routeId, path: 'mission-control' })}
-				href={`/mission-control${queryParam}`}
-				role="menuitem"
-			>
-				<IconMissionControl />
-				<span>{$i18n.mission_control.title}</span>
-			</a>
-
-			<a
-				class="link not-themed"
-				class:collapsed={$menuCollapsed}
-				class:selected={isRouteSelected({ routeId, path: 'wallet' })}
-				href={`/wallet${queryParam}`}
-				role="menuitem"
-			>
-				<IconWallet />
-				<span>{$i18n.wallet.title}</span>
 			</a>
 
 			<a

@@ -3,9 +3,9 @@
 	import UpgradeMissionControl from '$lib/components/upgrade/list/UpgradeMissionControl.svelte';
 	import UpgradeOrbiter from '$lib/components/upgrade/list/UpgradeOrbiter.svelte';
 	import UpgradeSatellite from '$lib/components/upgrade/list/UpgradeSatellite.svelte';
-	import { satellitesStore } from '$lib/derived/satellites.derived';
+	import { satellites } from '$lib/derived/satellites.derived';
 	import { hasPendingUpgrades } from '$lib/derived/upgrade.derived';
-	import { i18n } from '$lib/stores/i18n.store';
+	import { i18n } from '$lib/stores/app/i18n.store';
 
 	let innerWidth = $state(0);
 
@@ -30,7 +30,7 @@
 			<tbody>
 				<UpgradeMissionControl />
 
-				{#each $satellitesStore ?? [] as satellite (satellite.satellite_id.toText())}
+				{#each $satellites ?? [] as satellite (satellite.satellite_id.toText())}
 					<UpgradeSatellite {satellite} />
 				{/each}
 

@@ -4,17 +4,16 @@
 	import { run } from 'svelte/legacy';
 	import { writable } from 'svelte/store';
 	import Analytics from '$lib/components/analytics/Analytics.svelte';
-	import AnalyticsSettings from '$lib/components/analytics/AnalyticsSettings.svelte';
 	import IdentityGuard from '$lib/components/guards/IdentityGuard.svelte';
-	import MissionControlGuard from '$lib/components/guards/MissionControlGuard.svelte';
 	import Loaders from '$lib/components/loaders/Loaders.svelte';
 	import Orbiter from '$lib/components/orbiter/Orbiter.svelte';
 	import OrbiterConfig from '$lib/components/orbiter/OrbiterConfig.svelte';
+	import OrbiterSettings from '$lib/components/orbiter/setup/OrbiterSettings.svelte';
 	import NoTabs from '$lib/components/ui/NoTabs.svelte';
 	import Tabs from '$lib/components/ui/Tabs.svelte';
 	import Warnings from '$lib/components/warning/Warnings.svelte';
 	import { authSignedIn } from '$lib/derived/auth.derived';
-	import { orbiterStore } from '$lib/derived/orbiter.derived';
+	import { orbiter } from '$lib/derived/orbiter.derived';
 	import {
 		type Tab,
 		type TabsContext,
@@ -30,15 +29,15 @@
 
 	let tabs: Tab[] = $derived([
 		tabDashboard,
-		...(nonNullish($orbiterStore)
+		...(nonNullish($orbiter)
 			? [
 					{
 						id: Symbol('2'),
-						labelKey: 'analytics.overview'
+						labelKey: 'core.config'
 					},
 					{
 						id: Symbol('3'),
-						labelKey: 'core.setup'
+						labelKey: 'analytics.orbiter'
 					}
 				]
 			: [])
@@ -60,7 +59,7 @@
 		});
 	});
 
-	let TabsCmp = $derived(isNullish($orbiterStore) ? NoTabs : Tabs);
+	let TabsCmp = $derived(isNullish($orbiter) ? NoTabs : Tabs);
 </script>
 
 <IdentityGuard>
@@ -72,17 +71,15 @@
 		{/snippet}
 
 		<Loaders>
-			<MissionControlGuard>
-				{#if $store.tabId === $store.tabs[0].id}
-					<Analytics />
-				{:else if $store.tabId === $store.tabs[1].id && nonNullish($orbiterStore)}
-					<Orbiter orbiter={$orbiterStore} />
-				{:else if $store.tabId === $store.tabs[2].id && nonNullish($orbiterStore)}
-					<OrbiterConfig orbiterId={$orbiterStore.orbiter_id} />
+			{#if $store.tabId === $store.tabs[0].id}
+				<Analytics />
+			{:else if $store.tabId === $store.tabs[2].id && nonNullish($orbiter)}
+				<Orbiter orbiter={$orbiter} />
 
-					<AnalyticsSettings orbiterId={$orbiterStore.orbiter_id} />
-				{/if}
-			</MissionControlGuard>
+				<OrbiterSettings orbiterId={$orbiter.orbiter_id} />
+			{:else if $store.tabId === $store.tabs[1].id && nonNullish($orbiter)}
+				<OrbiterConfig orbiterId={$orbiter.orbiter_id} />
+			{/if}
 		</Loaders>
 	</TabsCmp>
 </IdentityGuard>

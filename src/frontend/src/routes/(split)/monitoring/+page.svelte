@@ -5,6 +5,7 @@
 	import IdentityGuard from '$lib/components/guards/IdentityGuard.svelte';
 	import MissionControlGuard from '$lib/components/guards/MissionControlGuard.svelte';
 	import Loaders from '$lib/components/loaders/Loaders.svelte';
+	import MissionControl from '$lib/components/mission-control/MissionControl.svelte';
 	import MissionControlDataLoader from '$lib/components/mission-control/MissionControlDataLoader.svelte';
 	import MonitoringDashboard from '$lib/components/monitoring/MonitoringDashboard.svelte';
 	import MonitoringSettings from '$lib/components/monitoring/MonitoringSettings.svelte';
@@ -12,8 +13,8 @@
 	import Tabs from '$lib/components/ui/Tabs.svelte';
 	import Warnings from '$lib/components/warning/Warnings.svelte';
 	import { authSignedIn } from '$lib/derived/auth.derived';
-	import { hasMissionControlSettings } from '$lib/derived/mission-control-settings.derived';
-	import { missionControlIdDerived } from '$lib/derived/mission-control.derived';
+	import { missionControlId } from '$lib/derived/console/account.mission-control.derived';
+	import { hasMissionControlSettings } from '$lib/derived/mission-control/mission-control-settings.derived';
 	import {
 		type Tab,
 		TABS_CONTEXT_KEY,
@@ -22,21 +23,23 @@
 	} from '$lib/types/tabs.context';
 	import { initTabId } from '$lib/utils/tabs.utils';
 
-	const tabDashboard = {
-		id: Symbol('1'),
-		labelKey: 'core.dashboard'
-	};
-
-	let tabs: Tab[] = $derived([
-		tabDashboard,
+	let tabs = $derived<Tab[]>([
+		{
+			id: Symbol('1'),
+			labelKey: $hasMissionControlSettings ? 'core.dashboard' : 'monitoring.title'
+		},
 		...($hasMissionControlSettings
 			? [
 					{
 						id: Symbol('2'),
-						labelKey: 'core.setup'
+						labelKey: 'core.config'
 					}
 				]
-			: [])
+			: []),
+		{
+			id: Symbol('3'),
+			labelKey: 'mission_control.title'
+		}
 	]);
 
 	const store = writable<TabsData>({
@@ -55,7 +58,7 @@
 		});
 	});
 
-	let TabsCmp = $derived($hasMissionControlSettings ? Tabs : NoTabs);
+	let TabsCmp = $derived(nonNullish($missionControlId) ? Tabs : NoTabs);
 </script>
 
 <IdentityGuard>
@@ -68,12 +71,18 @@
 
 		<Loaders monitoring>
 			<MissionControlGuard>
-				{#if nonNullish($missionControlIdDerived)}
-					<MissionControlDataLoader missionControlId={$missionControlIdDerived} reload>
+				{#if nonNullish($missionControlId)}
+					<MissionControlDataLoader missionControlId={$missionControlId} reload>
 						{#if $store.tabId === $store.tabs[0].id}
-							<MonitoringDashboard missionControlId={$missionControlIdDerived} />
-						{:else if $store.tabId === $store.tabs[1].id && $hasMissionControlSettings}
-							<MonitoringSettings missionControlId={$missionControlIdDerived} />
+							<MonitoringDashboard missionControlId={$missionControlId} />
+						{:else if $hasMissionControlSettings}
+							{#if $store.tabId === $store.tabs[1].id}
+								<MonitoringSettings missionControlId={$missionControlId} />
+							{:else if $store.tabId === $store.tabs[2].id}
+								<MissionControl missionControlId={$missionControlId} />
+							{/if}
+						{:else if $store.tabId === $store.tabs[1].id}
+							<MissionControl missionControlId={$missionControlId} />
 						{/if}
 					</MissionControlDataLoader>
 				{/if}

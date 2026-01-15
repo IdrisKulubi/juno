@@ -1,13 +1,14 @@
 <script lang="ts">
-	import { nonNullish, type TokenAmountV2 } from '@dfinity/utils';
+	import { ICPToken, nonNullish, type TokenAmountV2 } from '@dfinity/utils';
 	import { blur } from 'svelte/transition';
-	import SendTokensMax from '$lib/components/tokens/SendTokensMax.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Value from '$lib/components/ui/Value.svelte';
-	import { icpToUsd } from '$lib/derived/exchange.derived';
-	import { i18n } from '$lib/stores/i18n.store';
+	import SendTokensMax from '$lib/components/wallet/tokens/SendTokensMax.svelte';
+	import { ICP } from '$lib/constants/token.constants';
+	import { icpToUsd } from '$lib/derived/wallet/exchange.derived';
+	import { i18n } from '$lib/stores/app/i18n.store';
 	import { formatICPToUsd } from '$lib/utils/icp.utils';
-	import { amountToICPToken } from '$lib/utils/token.utils';
+	import { amountToToken } from '$lib/utils/token.utils';
 
 	interface Props {
 		balance: bigint | undefined;
@@ -17,7 +18,7 @@
 
 	let { amount = $bindable(), balance, fee }: Props = $props();
 
-	let token: TokenAmountV2 | undefined = $derived(amountToICPToken(amount));
+	let token: TokenAmountV2 | undefined = $derived(amountToToken({ amount, token: ICPToken }));
 
 	let withUsd = $derived(nonNullish($icpToUsd));
 
@@ -54,7 +55,7 @@
 			bind:value={amount}
 		>
 			{#snippet end()}
-				<SendTokensMax {balance} {fee} onmax={(value) => (amount = value)} />
+				<SendTokensMax {balance} {fee} onmax={(value) => (amount = value)} selectedToken={ICP} />
 			{/snippet}
 		</Input>
 	</Value>

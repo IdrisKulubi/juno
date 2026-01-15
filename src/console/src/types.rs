@@ -1,6 +1,6 @@
 pub mod state {
     use crate::memory::manager::init_stable_state;
-    use crate::types::ledger::Payment;
+    use crate::types::ledger::{IcpPayment, IcrcPayment, IcrcPaymentKey};
     use candid::CandidType;
     use ic_ledger_types::{BlockIndex, Tokens};
     use ic_stable_structures::StableBTreeMap;
@@ -8,20 +8,28 @@ pub mod state {
     use junobuild_auth::state::types::state::AuthenticationHeapState;
     use junobuild_cdn::proposals::{ProposalsStable, SegmentDeploymentVersion};
     use junobuild_cdn::storage::{ProposalAssetsStable, ProposalContentChunksStable};
+    use junobuild_shared::ledger::types::cycles::CyclesTokens;
     use junobuild_shared::rate::types::{RateConfig, RateTokens};
     use junobuild_shared::types::memory::Memory;
-    use junobuild_shared::types::state::{Controllers, Timestamp};
+    use junobuild_shared::types::state::{
+        Controllers, Metadata, SegmentId, SegmentKind, Timestamp,
+    };
     use junobuild_shared::types::state::{MissionControlId, UserId};
     use junobuild_storage::types::state::StorageHeapState;
     use serde::{Deserialize, Serialize};
     use std::collections::{HashMap, HashSet};
 
-    pub type MissionControls = HashMap<UserId, MissionControl>;
-    pub type Payments = HashMap<BlockIndex, Payment>;
+    pub type Accounts = HashMap<UserId, Account>;
+    pub type IcpPayments = HashMap<BlockIndex, IcpPayment>;
+    pub type IcrcPayments = HashMap<IcrcPaymentKey, IcrcPayment>;
     pub type InvitationCodes = HashMap<InvitationCode, InvitationCodeRedeem>;
+    pub type FactoryFees = HashMap<SegmentKind, FactoryFee>;
+    pub type FactoryRates = HashMap<SegmentKind, FactoryRate>;
 
-    pub type MissionControlsStable = StableBTreeMap<UserId, MissionControl, Memory>;
-    pub type PaymentsStable = StableBTreeMap<BlockIndex, Payment, Memory>;
+    pub type AccountsStable = StableBTreeMap<UserId, Account, Memory>;
+    pub type IcpPaymentsStable = StableBTreeMap<BlockIndex, IcpPayment, Memory>;
+    pub type IcrcPaymentsStable = StableBTreeMap<IcrcPaymentKey, IcrcPayment, Memory>;
+    pub type SegmentsStable = StableBTreeMap<SegmentKey, Segment, Memory>;
 
     #[derive(Serialize, Deserialize)]
     pub struct State {
@@ -33,30 +41,32 @@ pub mod state {
     }
 
     pub struct StableState {
-        pub mission_controls: MissionControlsStable,
-        pub payments: PaymentsStable,
+        pub accounts: AccountsStable,
+        pub icp_payments: IcpPaymentsStable,
+        pub icrc_payments: IcrcPaymentsStable,
         pub proposals_assets: ProposalAssetsStable,
         pub proposals_content_chunks: ProposalContentChunksStable,
         pub proposals: ProposalsStable,
+        pub segments: SegmentsStable,
     }
 
     #[derive(Default, CandidType, Serialize, Deserialize, Clone)]
     pub struct HeapState {
         #[deprecated(note = "Deprecated. Use stable memory instead.")]
-        pub mission_controls: MissionControls,
+        pub mission_controls: Accounts,
         #[deprecated(note = "Deprecated. Use stable memory instead.")]
-        pub payments: Payments,
+        pub payments: IcpPayments,
         pub invitation_codes: InvitationCodes,
         pub controllers: Controllers,
-        pub rates: Rates,
-        pub fees: Fees,
+        pub factory_fees: Option<FactoryFees>,
+        pub factory_rates: Option<FactoryRates>,
         pub storage: StorageHeapState,
         pub authentication: Option<AuthenticationHeapState>,
         pub releases_metadata: ReleasesMetadata,
     }
 
     #[derive(CandidType, Serialize, Deserialize, Clone)]
-    pub struct MissionControl {
+    pub struct Account {
         pub mission_control_id: Option<MissionControlId>,
         pub owner: UserId,
         pub provider: Option<Provider>,
@@ -107,40 +117,54 @@ pub mod state {
     }
 
     #[derive(Default, CandidType, Serialize, Deserialize, Clone)]
-    pub struct Rate {
+    pub struct FactoryRate {
         pub tokens: RateTokens,
         pub config: RateConfig,
     }
 
     #[derive(CandidType, Serialize, Deserialize, Clone)]
-    pub struct Rates {
-        pub mission_controls: Rate,
-        pub satellites: Rate,
-        pub orbiters: Rate,
-    }
-
-    #[derive(CandidType, Serialize, Deserialize, Clone)]
-    pub struct Fee {
-        pub fee: Tokens,
+    pub struct FactoryFee {
+        pub fee_cycles: CyclesTokens,
+        pub fee_icp: Option<Tokens>,
         pub updated_at: Timestamp,
     }
 
     #[derive(CandidType, Serialize, Deserialize, Clone)]
-    pub struct Fees {
-        pub satellite: Fee,
-        pub orbiter: Fee,
+    pub struct Segment {
+        pub segment_id: SegmentId,
+        pub metadata: Metadata,
+        pub created_at: Timestamp,
+        pub updated_at: Timestamp,
+    }
+
+    #[derive(CandidType, Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct SegmentKey {
+        pub user: UserId,
+        pub segment_kind: StorableSegmentKind,
+        pub segment_id: SegmentId,
+    }
+
+    #[derive(CandidType, Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub enum StorableSegmentKind {
+        Satellite,
+        // For historical reasons, MissionControl is not stored in the segments stable tree
+        // but within the Account structure
+        Orbiter,
     }
 }
 
 pub mod interface {
-    use crate::types::state::MissionControl;
+    use crate::types::state::{Account, StorableSegmentKind};
     use candid::CandidType;
+    use ic_ledger_types::Tokens;
     use junobuild_auth::delegation::types::{
         OpenIdGetDelegationArgs, OpenIdPrepareDelegationArgs, PrepareDelegationError,
         PreparedDelegation,
     };
     use junobuild_auth::state::types::config::AuthenticationConfig;
     use junobuild_cdn::proposals::ProposalId;
+    use junobuild_shared::ledger::types::cycles::CyclesTokens;
+    use junobuild_shared::types::state::{Metadata, SegmentId};
     use junobuild_storage::types::config::StorageConfig;
     use serde::{Deserialize, Serialize};
 
@@ -165,7 +189,7 @@ pub mod interface {
     #[derive(CandidType, Serialize, Deserialize)]
     pub struct Authentication {
         pub delegation: PreparedDelegation,
-        pub mission_control: MissionControl,
+        pub account: Account,
     }
 
     #[derive(CandidType, Serialize, Deserialize)]
@@ -178,16 +202,50 @@ pub mod interface {
     pub enum GetDelegationArgs {
         OpenId(OpenIdGetDelegationArgs),
     }
+
+    #[derive(CandidType, Deserialize, Clone)]
+    pub struct ListSegmentsArgs {
+        pub segment_kind: Option<StorableSegmentKind>,
+        pub segment_id: Option<SegmentId>,
+    }
+
+    #[derive(CandidType, Deserialize)]
+    pub struct SetSegmentsArgs {
+        pub segment_kind: StorableSegmentKind,
+        pub segment_id: SegmentId,
+        pub metadata: Option<Metadata>,
+    }
+
+    #[derive(CandidType, Deserialize)]
+    pub struct UnsetSegmentsArgs {
+        pub segment_kind: StorableSegmentKind,
+        pub segment_id: SegmentId,
+    }
+
+    #[derive(CandidType, Deserialize, Clone)]
+    pub struct SetSegmentMetadataArgs {
+        pub segment_kind: StorableSegmentKind,
+        pub segment_id: SegmentId,
+        pub metadata: Metadata,
+    }
+
+    #[derive(CandidType, Deserialize)]
+    pub struct FeesArgs {
+        pub fee_cycles: CyclesTokens,
+        pub fee_icp: Option<Tokens>,
+    }
 }
 
 pub mod ledger {
-    use candid::CandidType;
-    use ic_ledger_types::BlockIndex;
+    use candid::{CandidType, Principal};
+    use ic_ledger_types::{BlockIndex, Tokens};
+    use icrc_ledger_types::icrc1::account::Account;
+    use junobuild_shared::ledger::types::cycles::CyclesTokens;
     use junobuild_shared::types::state::{MissionControlId, Timestamp};
     use serde::{Deserialize, Serialize};
 
     #[derive(CandidType, Serialize, Deserialize, Clone)]
-    pub struct Payment {
+    pub struct IcpPayment {
         pub mission_control_id: Option<MissionControlId>,
         pub block_index_payment: BlockIndex,
         pub block_index_refunded: Option<BlockIndex>,
@@ -197,9 +255,30 @@ pub mod ledger {
     }
 
     #[derive(CandidType, Serialize, Deserialize, Clone)]
+    pub struct IcrcPayment {
+        pub purchaser: Account,
+        pub block_index_refunded: Option<BlockIndex>,
+        pub status: PaymentStatus,
+        pub created_at: Timestamp,
+        pub updated_at: Timestamp,
+    }
+
+    #[derive(CandidType, Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct IcrcPaymentKey {
+        pub ledger_id: Principal,
+        pub block_index: BlockIndex,
+    }
+
+    #[derive(CandidType, Serialize, Deserialize, Clone)]
     pub enum PaymentStatus {
         Acknowledged,
         Completed,
         Refunded,
+    }
+
+    #[derive(Clone)]
+    pub enum Fee {
+        Cycles(CyclesTokens),
+        ICP(Tokens),
     }
 }

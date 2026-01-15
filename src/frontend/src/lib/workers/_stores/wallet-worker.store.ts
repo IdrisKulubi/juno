@@ -1,11 +1,19 @@
-import { walletIdbStore } from '$lib/stores/idb.store';
+import type {
+	IcrcAccountText,
+	IndexId,
+	LedgerId,
+	LedgerIds,
+	LedgerIdText
+} from '$lib/schemas/wallet.schema';
+import { walletIdbStore } from '$lib/stores/app/idb.store';
+import type { IcTransactionUi } from '$lib/types/ic-transaction';
 import type { CertifiedData } from '$lib/types/store';
-import type { PrincipalText } from '@dfinity/zod-schemas';
-import type { TransactionWithId } from '@icp-sdk/canisters/ledger/icp';
+import { toAccountIdentifier } from '$lib/utils/icp-icrc-account.utils';
+import type { AccountIdentifierHex } from '@icp-sdk/canisters/ledger/icp';
 import { encodeIcrcAccount, type IcrcAccount } from '@icp-sdk/canisters/ledger/icrc';
 import { get, set } from 'idb-keyval';
 
-export type IndexedTransactions = Record<string, CertifiedData<TransactionWithId>>;
+export type IndexedTransactions = Record<string, CertifiedData<IcTransactionUi>>;
 
 // Not reactive, only used to hold values imperatively.
 interface WalletState {
@@ -14,8 +22,8 @@ interface WalletState {
 }
 
 interface WalletTokenAccount {
-	ledgerId: PrincipalText;
 	account: IcrcAccount;
+	ledgerIds: LedgerIds;
 }
 
 type WalletIdbKey = string;
@@ -28,16 +36,46 @@ export class WalletStore {
 
 	#store: WalletState;
 	#idbKey: WalletIdbKey;
+	#account: IcrcAccount;
+	#ledgerIds: LedgerIds;
 
 	private constructor({
 		state,
-		idbKey: key
+		idbKey: key,
+		account,
+		ledgerIds
 	}: {
 		state: WalletState | undefined;
 		idbKey: WalletIdbKey;
+		account: IcrcAccount;
+		ledgerIds: LedgerIds;
 	}) {
 		this.#store = state ?? WalletStore.EMPTY_STORE;
 		this.#idbKey = key;
+		this.#account = account;
+		this.#ledgerIds = ledgerIds;
+	}
+
+	get account(): IcrcAccount {
+		return this.#account;
+	}
+
+	get icrcAccountText(): IcrcAccountText {
+		return encodeIcrcAccount(this.#account);
+	}
+
+	get accountIdentifierHex(): AccountIdentifierHex {
+		return toAccountIdentifier(this.#account).toHex();
+	}
+
+	get ledgerIdText(): LedgerIdText {
+		const { ledgerId } = this.#ledgerIds;
+		return ledgerId.toText();
+	}
+
+	get indexId(): IndexId {
+		const { indexId } = this.#ledgerIds;
+		return indexId;
 	}
 
 	get balance(): CertifiedData<bigint> | undefined {
@@ -48,13 +86,17 @@ export class WalletStore {
 		return this.#store.transactions;
 	}
 
+	get idbKey(): WalletIdbKey {
+		return this.#idbKey;
+	}
+
 	update({
 		balance,
 		newTransactions,
 		certified
 	}: {
 		balance: bigint;
-		newTransactions: TransactionWithId[];
+		newTransactions: IcTransactionUi[];
 		certified: boolean;
 	}): void {
 		this.#store = {
@@ -62,12 +104,12 @@ export class WalletStore {
 			transactions: {
 				...this.#store.transactions,
 				...newTransactions.reduce(
-					(acc: Record<string, CertifiedData<TransactionWithId>>, { id, transaction }) => ({
+					(acc: Record<string, CertifiedData<IcTransactionUi>>, { id, ...transaction }) => ({
 						...acc,
 						[`${id}`]: {
 							data: {
 								id,
-								transaction
+								...transaction
 							},
 							certified
 						}
@@ -95,10 +137,10 @@ export class WalletStore {
 		account,
 		ledgerId
 	}: {
-		ledgerId: PrincipalText;
+		ledgerId: LedgerId;
 		account: IcrcAccount;
 	}): string {
-		return `${ledgerId}#${encodeIcrcAccount(account)}`;
+		return `${ledgerId.toText()}#${encodeIcrcAccount(account)}`;
 	}
 
 	async save(): Promise<void> {
@@ -106,9 +148,12 @@ export class WalletStore {
 		await set(this.#idbKey, this.#store, walletIdbStore);
 	}
 
-	static async init(params: WalletTokenAccount): Promise<WalletStore> {
-		const idbKey = WalletStore.toIdbKey(params);
+	static async init({
+		account,
+		ledgerIds: { ledgerId, indexId }
+	}: WalletTokenAccount): Promise<WalletStore> {
+		const idbKey = WalletStore.toIdbKey({ account, ledgerId });
 		const state = await get(idbKey, walletIdbStore);
-		return new WalletStore({ state, idbKey });
+		return new WalletStore({ state, idbKey, account, ledgerIds: { ledgerId, indexId } });
 	}
 }

@@ -9,7 +9,7 @@
 	import ButtonIcon from '$lib/components/ui/ButtonIcon.svelte';
 	import Popover from '$lib/components/ui/Popover.svelte';
 	import TabsSegment from '$lib/components/ui/TabsSegment.svelte';
-	import { i18n } from '$lib/stores/i18n.store';
+	import { i18n } from '$lib/stores/app/i18n.store';
 	import type { CanisterData, CanisterWarning } from '$lib/types/canister';
 	import {
 		type Tab,
@@ -37,6 +37,7 @@
 	let upgradeWarning = $state(false);
 	let canisterWarnings = $state(false);
 	let canisterNotifications = $state(false);
+	let outOfSyncWarnings = $state(false);
 
 	let hasAlerts = $state(false);
 	let hasNotifications = $derived(canisterNotifications);
@@ -100,6 +101,7 @@
 	bind:alerts={hasAlerts}
 	bind:upgradeWarning
 	bind:canisterWarnings
+	bind:outOfSyncWarnings
 />
 
 <NotificationsInboxLoader {missionControlCanisterData} bind:canisterNotifications />
@@ -116,6 +118,7 @@
 					{missionControlWarnings}
 					{orbiterCanisterData}
 					{orbiterWarnings}
+					{outOfSyncWarnings}
 					{satelliteCanisterData}
 					{satelliteWarnings}
 					{upgradeWarning}

@@ -1,23 +1,18 @@
 <script lang="ts">
-	import type { MissionControlDid } from '$declarations';
-	import CanisterBuyCycleExpress from '$lib/components/canister/CanisterBuyCycleExpress.svelte';
-	import CanisterDelete from '$lib/components/canister/CanisterDelete.svelte';
-	import CanisterStopStart from '$lib/components/canister/CanisterStopStart.svelte';
-	import CanisterTransferCycles from '$lib/components/canister/CanisterTransferCycles.svelte';
-	import TopUp from '$lib/components/canister/TopUp.svelte';
+	import CanisterTransferCycles from '$lib/components/canister/cycles/CanisterTransferCycles.svelte';
+	import CanisterDelete from '$lib/components/canister/lifecycle/CanisterDelete.svelte';
+	import CanisterStopStart from '$lib/components/canister/lifecycle/CanisterStopStart.svelte';
+	import TopUp from '$lib/components/canister/top-up/TopUp.svelte';
 	import SegmentActions from '$lib/components/segments/SegmentActions.svelte';
-	import { i18n } from '$lib/stores/i18n.store';
-	import { toasts } from '$lib/stores/toasts.store';
 	import type { CanisterSyncData as CanisterSyncDataType } from '$lib/types/canister';
 	import { emit } from '$lib/utils/events.utils';
 
 	interface Props {
-		orbiter: MissionControlDid.Orbiter;
 		canister: CanisterSyncDataType | undefined;
 		monitoringEnabled: boolean;
 	}
 
-	let { orbiter, canister, monitoringEnabled }: Props = $props();
+	let { canister, monitoringEnabled }: Props = $props();
 
 	let visible: boolean = $state(false);
 	const close = () => (visible = false);
@@ -41,18 +36,13 @@
 	const onDeleteOrbiter = async () => {
 		close();
 
-		// TODO: can be removed once the mission control is patched to disable monitoring on delete
-		if (monitoringEnabled) {
-			toasts.warn($i18n.monitoring.warn_monitoring_enabled);
-			return;
-		}
-
 		emit({
 			message: 'junoModal',
 			detail: {
 				type: 'delete_orbiter',
 				detail: {
-					cycles: canister?.data?.canister?.cycles ?? 0n
+					cycles: canister?.data?.canister?.cycles ?? 0n,
+					monitoringEnabled
 				}
 			}
 		});
@@ -66,8 +56,6 @@
 
 	{#snippet cyclesActions()}
 		<CanisterTransferCycles {canister} onclick={onTransferCycles} />
-
-		<CanisterBuyCycleExpress canisterId={orbiter.orbiter_id} />
 	{/snippet}
 
 	{#snippet lifecycleActions()}
