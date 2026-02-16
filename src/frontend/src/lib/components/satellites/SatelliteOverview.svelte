@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { fromNullishNullable } from '@dfinity/utils';
 	import { onMount } from 'svelte';
-	import CanisterSyncData from '$lib/components/canister/CanisterSyncData.svelte';
-	import CanisterOverview from '$lib/components/canister/display/CanisterOverview.svelte';
-	import CanisterSubnet from '$lib/components/canister/display/CanisterSubnet.svelte';
+	import CanisterSyncData from '$lib/components/modules/canister/CanisterSyncData.svelte';
+	import CanisterOverview from '$lib/components/modules/canister/display/CanisterOverview.svelte';
+	import CanisterSubnet from '$lib/components/modules/canister/display/CanisterSubnet.svelte';
 	import SatelliteEnvText from '$lib/components/satellites/SatelliteEnvironmentText.svelte';
 	import SatelliteName from '$lib/components/satellites/SatelliteName.svelte';
 	import SatelliteOverviewActions from '$lib/components/satellites/SatelliteOverviewActions.svelte';
@@ -14,7 +14,7 @@
 	import Identifier from '$lib/components/ui/Identifier.svelte';
 	import Value from '$lib/components/ui/Value.svelte';
 	import { testIds } from '$lib/constants/test-ids.constants';
-	import { listCustomDomains } from '$lib/services/satellite/custom-domain.services';
+	import { listCustomDomains } from '$lib/services/satellite/hosting/custom-domain.services';
 	import { i18n } from '$lib/stores/app/i18n.store';
 	import type { CanisterSyncData as CanisterSyncDataType } from '$lib/types/canister';
 	import type { Satellite, SatelliteIdText } from '$lib/types/satellite';

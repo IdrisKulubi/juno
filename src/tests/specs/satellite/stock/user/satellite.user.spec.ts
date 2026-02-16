@@ -16,6 +16,7 @@ import {
 } from '@junobuild/errors';
 import { fromArray, toArray } from '@junobuild/utils';
 import { inject } from 'vitest';
+import { CONTROLLER_METADATA } from '../../../../constants/controller-tests.constants';
 import { controllersInitArgs, SATELLITE_WASM_PATH } from '../../../../utils/setup-tests.utils';
 
 describe('Satellite > User', () => {
@@ -454,9 +455,8 @@ describe('Satellite > User', () => {
 
 			await set_controllers({
 				controller: {
-					scope: { Write: null },
-					metadata: [],
-					expires_at: []
+					...CONTROLLER_METADATA,
+					scope: { Write: null }
 				},
 				controllers: [controllerReadWrite.getPrincipal()]
 			});
@@ -689,7 +689,7 @@ describe('Satellite > User', () => {
 				})
 			).rejects.toThrowError(
 				new RegExp(
-					`${JUNO_DATASTORE_ERROR_USER_INVALID_DATA}: unknown variant \`unknown\`, expected one of \`internet_identity\`, \`nfid\`, \`webauthn\`, \`google\` at line 1 column 21.`,
+					`${JUNO_DATASTORE_ERROR_USER_INVALID_DATA}: unknown variant \`unknown\`, expected one of \`internet_identity\`, \`nfid\`, \`webauthn\`, \`google\`, \`github\` at line 1 column 21.`,
 					'i'
 				)
 			);

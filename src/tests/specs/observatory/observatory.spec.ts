@@ -5,10 +5,13 @@ import { AnonymousIdentity } from '@icp-sdk/core/agent';
 import { Ed25519KeyIdentity } from '@icp-sdk/core/identity';
 import { Principal } from '@icp-sdk/core/principal';
 import { inject } from 'vitest';
+import { GOOGLE_OPEN_ID_PROVIDER } from '../../constants/auth-tests.constants';
+import { CONTROLLER_METADATA } from '../../constants/controller-tests.constants';
 import {
 	CALLER_NOT_ANONYMOUS_MSG,
 	CALLER_NOT_CONTROLLER_OBSERVATORY_MSG
 } from '../../constants/observatory-tests.constants';
+import { testControllers } from '../../utils/controllers-tests.utils';
 import { OBSERVATORY_WASM_PATH } from '../../utils/setup-tests.utils';
 
 describe('Observatory', () => {
@@ -41,9 +44,8 @@ describe('Observatory', () => {
 			await expect(
 				set_controllers({
 					controller: {
-						scope: { Admin: null },
-						metadata: [],
-						expires_at: []
+						...CONTROLLER_METADATA,
+						scope: { Admin: null }
 					},
 					controllers: [controller.getPrincipal()]
 				})
@@ -117,7 +119,7 @@ describe('Observatory', () => {
 		it('should throw errors on start openid monitoring', async () => {
 			const { start_openid_monitoring } = actor;
 
-			await expect(start_openid_monitoring()).rejects.toThrowError(
+			await expect(start_openid_monitoring(GOOGLE_OPEN_ID_PROVIDER)).rejects.toThrowError(
 				CALLER_NOT_CONTROLLER_OBSERVATORY_MSG
 			);
 		});
@@ -125,7 +127,7 @@ describe('Observatory', () => {
 		it('should throw errors on stop openid monitoring', async () => {
 			const { stop_openid_monitoring } = actor;
 
-			await expect(stop_openid_monitoring()).rejects.toThrowError(
+			await expect(stop_openid_monitoring(GOOGLE_OPEN_ID_PROVIDER)).rejects.toThrowError(
 				CALLER_NOT_CONTROLLER_OBSERVATORY_MSG
 			);
 		});
@@ -133,7 +135,7 @@ describe('Observatory', () => {
 		it('should throw errors on getting openid enabled', async () => {
 			const { is_openid_monitoring_enabled } = actor;
 
-			await expect(is_openid_monitoring_enabled()).rejects.toThrowError(
+			await expect(is_openid_monitoring_enabled(GOOGLE_OPEN_ID_PROVIDER)).rejects.toThrowError(
 				CALLER_NOT_CONTROLLER_OBSERVATORY_MSG
 			);
 		});
@@ -165,5 +167,17 @@ describe('Observatory', () => {
 		});
 
 		testGuards();
+	});
+
+	describe('controller', () => {
+		beforeAll(() => {
+			actor.setIdentity(controller);
+		});
+
+		testControllers({
+			actor: () => actor,
+			controller: () => controller,
+			pic: () => pic
+		});
 	});
 });

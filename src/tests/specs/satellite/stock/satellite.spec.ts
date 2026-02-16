@@ -17,6 +17,7 @@ import {
 } from '@junobuild/errors';
 import { inject } from 'vitest';
 import { mockListRules } from '../../../mocks/list.mocks';
+import { testControllers } from '../../../utils/controllers-tests.utils';
 import { controllersInitArgs, SATELLITE_WASM_PATH } from '../../../utils/setup-tests.utils';
 
 describe('Satellite', () => {
@@ -209,38 +210,10 @@ describe('Satellite', () => {
 			expect(items_length).toEqual(1n);
 		});
 
-		it('should add and remove additional controller', async () => {
-			const { set_controllers, del_controllers, list_controllers } = actor;
-
-			const newController = Ed25519KeyIdentity.generate();
-
-			const controllers = await set_controllers({
-				controllers: [newController.getPrincipal()],
-				controller: {
-					expires_at: toNullable(),
-					metadata: [],
-					scope: { Admin: null }
-				}
-			});
-
-			expect(controllers).toHaveLength(2);
-
-			expect(
-				controllers.find(([p]) => p.toText() === controller.getPrincipal().toText())
-			).not.toBeUndefined();
-
-			expect(
-				controllers.find(([p]) => p.toText() === newController.getPrincipal().toText())
-			).not.toBeUndefined();
-
-			await del_controllers({
-				controllers: [newController.getPrincipal()]
-			});
-
-			const updatedControllers = await list_controllers();
-
-			expect(updatedControllers).toHaveLength(1);
-			expect(updatedControllers[0][0].toText()).toEqual(controller.getPrincipal().toText());
+		testControllers({
+			actor: () => actor,
+			controller: () => controller,
+			pic: () => pic
 		});
 
 		describe.each([
@@ -724,23 +697,6 @@ describe('Satellite', () => {
 			).rejects.toThrowError(JUNO_AUTH_ERROR_NOT_ADMIN_CONTROLLER);
 		});
 
-		it('should throw errors on creating controller', async () => {
-			const { set_controllers } = actor;
-
-			const controller = Ed25519KeyIdentity.generate();
-
-			await expect(
-				set_controllers({
-					controllers: [controller.getPrincipal()],
-					controller: {
-						expires_at: toNullable(),
-						metadata: [],
-						scope: { Admin: null }
-					}
-				})
-			).rejects.toThrowError(JUNO_AUTH_ERROR_NOT_ADMIN_CONTROLLER);
-		});
-
 		it('should throw errors on list controllers', async () => {
 			const { list_controllers } = actor;
 
@@ -755,6 +711,12 @@ describe('Satellite', () => {
 					controllers: [controller.getPrincipal()]
 				})
 			).rejects.toThrowError(JUNO_AUTH_ERROR_NOT_ADMIN_CONTROLLER);
+		});
+
+		it('should throw errors on deleting controller self', async () => {
+			const { del_controller_self } = actor;
+
+			await expect(del_controller_self()).rejects.toThrowError(JUNO_AUTH_ERROR_NOT_CONTROLLER);
 		});
 
 		it('should throw errors on deleting docs', async () => {

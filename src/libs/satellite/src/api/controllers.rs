@@ -1,13 +1,11 @@
 use crate::controllers::store::{delete_controllers, set_controllers as set_controllers_store};
-use crate::{get_admin_controllers, get_controllers};
-use ic_cdk::trap;
-use junobuild_shared::constants::shared::MAX_NUMBER_OF_SATELLITE_CONTROLLERS;
+use crate::{caller, get_controllers};
 use junobuild_shared::ic::UnwrapOrTrap;
 use junobuild_shared::segments::controllers::{
-    assert_controllers, assert_max_number_of_controllers,
+    assert_controller_expiration, assert_controllers, assert_max_number_of_controllers,
 };
 use junobuild_shared::types::interface::{DeleteControllersArgs, SetControllersArgs};
-use junobuild_shared::types::state::{ControllerScope, Controllers};
+use junobuild_shared::types::state::{ControllerId, Controllers};
 
 pub fn set_controllers(
     SetControllersArgs {
@@ -15,23 +13,12 @@ pub fn set_controllers(
         controller,
     }: SetControllersArgs,
 ) -> Controllers {
-    #[allow(clippy::single_match)]
-    match controller.scope {
-        ControllerScope::Admin => {
-            let max_controllers = assert_max_number_of_controllers(
-                &get_admin_controllers(),
-                &controllers,
-                MAX_NUMBER_OF_SATELLITE_CONTROLLERS,
-            );
-
-            if let Err(err) = max_controllers {
-                trap(&err)
-            }
-        }
-        _ => (),
-    }
+    assert_max_number_of_controllers(&get_controllers(), &controllers, &controller.scope, None)
+        .unwrap_or_trap();
 
     assert_controllers(&controllers).unwrap_or_trap();
+
+    assert_controller_expiration(&controller).unwrap_or_trap();
 
     set_controllers_store(&controllers, &controller);
 
@@ -44,6 +31,13 @@ pub fn del_controllers(
     delete_controllers(&controllers);
 
     get_controllers()
+}
+
+pub fn del_controller_self() {
+    let caller = caller();
+    let controllers: [ControllerId; 1] = [caller.clone()];
+
+    delete_controllers(&controllers);
 }
 
 pub fn list_controllers() -> Controllers {

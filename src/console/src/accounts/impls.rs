@@ -1,7 +1,7 @@
 use crate::constants::E8S_PER_ICP;
 use crate::types::state::{Account, OpenIdData, Provider};
 use ic_cdk::api::time;
-use junobuild_auth::openid::types::interface::OpenIdCredential;
+use junobuild_auth::openid::credentials::delegation::types::interface::OpenIdDelegationCredential;
 use junobuild_auth::profile::types::OpenIdProfile;
 use junobuild_shared::types::state::{MissionControlId, UserId};
 
@@ -18,6 +18,9 @@ impl OpenIdProfile for OpenIdData {
     fn family_name(&self) -> Option<&str> {
         self.family_name.as_deref()
     }
+    fn preferred_username(&self) -> Option<&str> {
+        self.preferred_username.as_deref()
+    }
     fn picture(&self) -> Option<&str> {
         self.picture.as_deref()
     }
@@ -27,7 +30,7 @@ impl OpenIdProfile for OpenIdData {
 }
 
 impl OpenIdData {
-    pub fn merge(existing: &OpenIdData, credential: &OpenIdCredential) -> Self {
+    pub fn merge(existing: &OpenIdData, credential: &OpenIdDelegationCredential) -> Self {
         Self {
             email: credential.email.clone().or(existing.email.clone()),
             name: credential.name.clone().or(existing.name.clone()),
@@ -39,19 +42,24 @@ impl OpenIdData {
                 .family_name
                 .clone()
                 .or(existing.family_name.clone()),
+            preferred_username: credential
+                .preferred_username
+                .clone()
+                .or(existing.preferred_username.clone()),
             picture: credential.picture.clone().or(existing.picture.clone()),
             locale: credential.locale.clone().or(existing.locale.clone()),
         }
     }
 }
 
-impl From<&OpenIdCredential> for OpenIdData {
-    fn from(credential: &OpenIdCredential) -> Self {
+impl From<&OpenIdDelegationCredential> for OpenIdData {
+    fn from(credential: &OpenIdDelegationCredential) -> Self {
         Self {
             email: credential.email.clone(),
             name: credential.name.clone(),
             given_name: credential.given_name.clone(),
             family_name: credential.family_name.clone(),
+            preferred_username: credential.preferred_username.clone(),
             picture: credential.picture.clone(),
             locale: credential.locale.clone(),
         }

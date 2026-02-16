@@ -1,46 +1,15 @@
-import { listDocs } from '$lib/api/satellites.api';
-import { listDocs008 } from '$lib/api/satellites.deprecated.api';
-import { SATELLITE_v0_0_9 } from '$lib/constants/version.constants';
-import { isSatelliteFeatureSupported } from '$lib/services/_feature.services';
-import type { OptionIdentity } from '$lib/types/itentity';
-import type { ListParams } from '$lib/types/list';
+import {
+	listDocs,
+	type ListDocsParams,
+	type ListDocsResult
+} from '$lib/services/satellite/_list-docs.services';
 import type { User } from '$lib/types/user';
 import { toKeyUser } from '$lib/utils/user.utils';
-import type { Principal } from '@icp-sdk/core/principal';
 
-export const listUsers = async ({
-	startAfter,
-	satelliteId,
-	filter,
-	order,
-	identity
-}: Pick<ListParams, 'startAfter' | 'filter' | 'order'> & {
-	satelliteId: Principal;
-	identity: OptionIdentity;
-}): Promise<{
-	users: [string, User][];
-	matches_length: bigint;
-	items_length: bigint;
-}> => {
-	const newestListDocs = isSatelliteFeatureSupported({
-		satelliteId,
-		requiredMinVersion: SATELLITE_v0_0_9
-	});
-
-	const list = newestListDocs ? listDocs : listDocs008;
-
-	const { items, matches_length, items_length } = await list({
-		collection: '#user',
-		satelliteId,
-		params: {
-			startAfter,
-			order: order ?? {
-				desc: true,
-				field: 'created_at'
-			},
-			filter
-		},
-		identity
+export const listUsers = async (params: ListDocsParams): Promise<ListDocsResult<User>> => {
+	const { items, matches_length, items_length } = await listDocs({
+		...params,
+		collection: '#user'
 	});
 
 	const users: [string, User][] = [];
@@ -51,7 +20,7 @@ export const listUsers = async ({
 	}
 
 	return {
-		users,
+		items: users,
 		matches_length,
 		items_length
 	};

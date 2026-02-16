@@ -25,10 +25,17 @@ describe('Mission Control', () => {
 
 		const userInitArgs = (): Uint8Array => missionControlUserInitArgs(controller.getPrincipal());
 
-		const { actor: c } = await pic.setupCanister<MissionControlActor>({
+		const { actor: c, canisterId } = await pic.setupCanister<MissionControlActor>({
 			idlFactory: idlFactoryMissionControl,
 			wasm: MISSION_CONTROL_WASM_PATH,
 			arg: userInitArgs(),
+			sender: controller.getPrincipal()
+		});
+
+		// Mission Control needs to control itself to be able to set_mission_control_controllers
+		await pic.updateCanisterSettings({
+			canisterId,
+			controllers: [controller.getPrincipal(), canisterId],
 			sender: controller.getPrincipal()
 		});
 

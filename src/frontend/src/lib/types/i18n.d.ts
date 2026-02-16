@@ -11,6 +11,7 @@ interface I18nCore {
 	copied: string;
 	toggle: string;
 	loading: string;
+	loading_config: string;
 	status: string;
 	sign_out: string;
 	sign_in: string;
@@ -63,6 +64,7 @@ interface I18nCore {
 	config: string;
 	edit_config: string;
 	advanced_options: string;
+	configuring: string;
 	updating_configuration: string;
 	configuration_applied: string;
 	completed: string;
@@ -288,6 +290,7 @@ interface I18nSign_in {
 	internet_identity: string;
 	internet_identity_short: string;
 	google: string;
+	github: string;
 }
 
 interface I18nSign_in_openid {
@@ -450,7 +453,6 @@ interface I18nAuthentication {
 	target_your_satellite: string;
 	target_modules: string;
 	in_nanoseconds: string;
-	loading_config: string;
 }
 
 interface I18nDatastore {
@@ -633,6 +635,7 @@ interface I18nErrors {
 	load_credits: string;
 	load_documents: string;
 	load_users: string;
+	load_workflows: string;
 	load_settings: string;
 	load_user_data: string;
 	load_auth_config_error: string;
@@ -694,6 +697,8 @@ interface I18nErrors {
 	transfer_cycles: string;
 	cannot_fetch_logs: string;
 	authentication_config_loading: string;
+	automation_config_loading: string;
+	satellite_config_loading: string;
 	no_file_selected_for_upload: string;
 	upload_error: string;
 	set_asset_token_error: string;
@@ -764,6 +769,11 @@ interface I18nErrors {
 	invalid_version_cannot_downgrade: string;
 	reconcile_out_of_sync_error: string;
 	reconcile_no_divergence: string;
+	build_repo_key_invalid_url: string;
+	build_repo_key_invalid_github_url: string;
+	build_repo_key_owner_not_found: string;
+	build_repo_key_repo_not_found: string;
+	create_automation_config: string;
 }
 
 interface I18nDocument {
@@ -819,6 +829,8 @@ interface I18nAdmin {
 
 interface I18nControllers {
 	title: string;
+	type: string;
+	automation: string;
 	profile: string;
 	scope: string;
 	delete: string;
@@ -1016,6 +1028,16 @@ interface I18nEmulator {
 	error_getting_icp: string;
 }
 
+interface I18nDev {
+	continue_with_dev: string;
+	or: string;
+	switch_account: string;
+	identifier: string;
+	examples: string;
+	recent: string;
+	enter_a_name: string;
+}
+
 interface I18nUpgrade {
 	title: string;
 	modules: string;
@@ -1100,6 +1122,44 @@ interface I18nOut_of_sync {
 	no_segments: string;
 	modules_synced: string;
 	syncing_modules: string;
+	syncing_satellites_to_console: string;
+	syncing_satellites_to_mctrl: string;
+	syncing_orbiters_to_console: string;
+	syncing_orbiters_to_mctrl: string;
+}
+
+interface I18nAutomation {
+	title: string;
+	description: string;
+	create_connect_title: string;
+	create_connect_description: string;
+	create_connect_input_placeholder: string;
+	create_connect_review_title: string;
+	create_connect_review_description: string;
+	repository: string;
+	provider: string;
+	open_repo: string;
+	create_actions_title: string;
+	create_actions_configured: string;
+	create_actions_description: string;
+	deploy_frontend: string;
+	publish_functions: string;
+	workflow_type: string;
+	package_manager: string;
+	workflow_placeholder: string;
+	workflow: string;
+	reference: string;
+	timestamp: string;
+	empty: string;
+	commit: string;
+	pushed_by: string;
+	manually_run_by: string;
+	pr_run_by: string;
+	no_workflow_info: string;
+	view_workflow: string;
+	view_commit: string;
+	view_branch: string;
+	view_contributor: string;
 }
 
 interface I18n {
@@ -1131,6 +1191,7 @@ interface I18n {
 	monitoring: I18nMonitoring;
 	preferences: I18nPreferences;
 	emulator: I18nEmulator;
+	dev: I18nDev;
 	upgrade: I18nUpgrade;
 	changes: I18nChanges;
 	cdn: I18nCdn;
@@ -1138,4 +1199,5 @@ interface I18n {
 	not_found: I18nNot_found;
 	spotlight: I18nSpotlight;
 	out_of_sync: I18nOut_of_sync;
+	automation: I18nAutomation;
 }

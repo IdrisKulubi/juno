@@ -1,14 +1,12 @@
 <script lang="ts">
-	import { nonNullish } from '@dfinity/utils';
 	import { setContext } from 'svelte';
 	import { writable } from 'svelte/store';
-	import Cdn from '$lib/components/cdn/list/Cdn.svelte';
-	import IdentityGuard from '$lib/components/guards/IdentityGuard.svelte';
-	import SatelliteGuard from '$lib/components/guards/SatelliteGuard.svelte';
-	import Loaders from '$lib/components/loaders/Loaders.svelte';
-	import Logs from '$lib/components/logs/Logs.svelte';
+	import Loaders from '$lib/components/app/loaders/Loaders.svelte';
+	import IdentityGuard from '$lib/components/auth/guards/IdentityGuard.svelte';
+	import Cdn from '$lib/components/satellites/cdn/list/Cdn.svelte';
+	import SatelliteGuard from '$lib/components/satellites/guards/SatelliteGuard.svelte';
+	import Logs from '$lib/components/satellites/logs/Logs.svelte';
 	import Tabs from '$lib/components/ui/Tabs.svelte';
-	import { satellite } from '$lib/derived/satellite.derived';
 	import {
 		type Tab,
 		type TabsContext,
@@ -41,15 +39,15 @@
 <IdentityGuard>
 	<Loaders>
 		<SatelliteGuard>
-			<Tabs>
-				{#if nonNullish($satellite)}
+			{#snippet content(satellite)}
+				<Tabs>
 					{#if $store.tabId === $store.tabs[0].id}
-						<Logs satelliteId={$satellite.satellite_id} />
+						<Logs satelliteId={satellite.satellite_id} />
 					{:else if $store.tabId === $store.tabs[1].id}
-						<Cdn satellite={$satellite} />
+						<Cdn {satellite} />
 					{/if}
-				{/if}
-			</Tabs>
+				</Tabs>
+			{/snippet}
 		</SatelliteGuard>
 	</Loaders>
 </IdentityGuard>

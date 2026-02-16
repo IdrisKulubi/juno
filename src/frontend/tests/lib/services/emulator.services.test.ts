@@ -68,7 +68,8 @@ describe('emulator.services', () => {
 				args: {
 					controller: {
 						expires_at: [],
-						metadata: [['profile', '👾 Emulator']],
+						kind: [{ Emulator: null }],
+						metadata: [],
 						scope: {
 							Admin: null
 						}

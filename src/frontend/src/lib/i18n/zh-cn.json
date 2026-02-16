@@ -8,6 +8,7 @@
 		"copied": "已拷贝到剪贴板",
 		"toggle": "切换",
 		"loading": "加载中...",
+		"loading_config": "正在加载配置...",
 		"status": "状态",
 		"sign_out": "退出登录",
 		"sign_in": "登录",
@@ -61,6 +62,7 @@
 		"config": "系统配置",
 		"edit_config": "编辑配置",
 		"advanced_options": "高级设置",
+		"configuring": "配置中...",
 		"updating_configuration": "正在更新系统配置...",
 		"configuration_applied": "配置已生效",
 		"completed": "完成",
@@ -283,7 +285,8 @@
 		"quote_10": "宇宙无垠，探索不止。",
 		"internet_identity": "继续使用Internet Identity",
 		"internet_identity_short": "继续使用Identity",
-		"google": "继续使用Google"
+		"google": "继续使用Google",
+		"github": "继续使用GitHub"
 	},
 	"sign_in_openid": {
 		"in_progress": "请稍候，正在对接您的身份...",
@@ -439,8 +442,7 @@
 		"allowed_targets_placeholder": "Principal ID，逗号分隔或每行一个。留空则使用默认权限。",
 		"target_your_satellite": "您的 Satellite：",
 		"target_modules": "{0} 个模块",
-		"in_nanoseconds": "单位：纳秒",
-		"loading_config": "正在加载配置..."
+		"in_nanoseconds": "单位：纳秒"
 	},
 	"datastore": {
 		"title": "数据池",
@@ -616,6 +618,7 @@
 		"load_credits": "无法加载当前积分状态。",
 		"load_documents": "文档加载时发生意外错误。",
 		"load_users": "用户加载时发生意外错误。",
+		"load_workflows": "加载工作流时发生意外错误。",
 		"load_settings": "设置加载时发生意外错误。",
 		"load_user_data": "加载您的数据（配置、元数据等）时发生意外错误。",
 		"loading_config": "正在加载配置…",
@@ -678,6 +681,8 @@
 		"transfer_cycles": "转移cycles时发生意外错误。",
 		"cannot_fetch_logs": "获取日志时发生意外错误。",
 		"authentication_config_loading": "加载认证配置时发生意外错误。",
+		"automation_config_loading": "加载自动化配置时发生意外错误。",
+		"satellite_config_loading": "加载 Satellite 配置时发生意外错误。",
 		"no_file_selected_for_upload": "未选择上传文件。",
 		"upload_error": "上传文件时发生意外错误。",
 		"set_asset_token_error": "更新资产访问令牌时发生意外错误。",
@@ -747,7 +752,12 @@
 		"missing_satellite_version": "无法确定当前卫星版本。",
 		"invalid_version_cannot_downgrade": "无法降级默认函数，所选版本低于当前卫星版本。",
 		"reconcile_out_of_sync_error": "在控制台和您的任务控制中心之间同步模块时发生意外错误。",
-		"reconcile_no_divergence": "未检测到配置不匹配。无需同步。"
+		"reconcile_no_divergence": "未检测到配置不匹配。无需同步。",
+		"build_repo_key_invalid_url": "无效的 URL。请输入有效的仓库 URL。",
+		"build_repo_key_invalid_github_url": "仅支持 GitHub 仓库。请输入您的 GitHub 仓库 URL。",
+		"build_repo_key_owner_not_found": "在 URL 中未找到仓库所有者。请输入完整的 GitHub 仓库 URL。",
+		"build_repo_key_repo_not_found": "在 URL 中未找到仓库名称。请输入完整的 GitHub 仓库 URL。",
+		"create_automation_config": "保存自动化配置时发生错误。"
 	},
 	"document": {
 		"owner": "所有者",
@@ -799,7 +809,9 @@
 	},
 	"controllers": {
 		"title": "访问密钥",
-		"profile": "配置/类型",
+		"type": "类型",
+		"automation": "自动化",
+		"profile": "配置",
 		"scope": "权限",
 		"delete": "删除访问密钥",
 		"info": "信息",
@@ -988,6 +1000,15 @@
 		"error_toggling_openid_monitoring_failed": "在模拟器中切换 Observatory 监控失败。",
 		"error_getting_icp": "使用模拟器获取 ICP 失败。"
 	},
+	"dev": {
+		"continue_with_dev": "继续使用 {0}",
+		"or": "或",
+		"switch_account": "切换账号",
+		"identifier": "标识符",
+		"examples": "例如 David",
+		"recent": "或最近使用",
+		"enter_a_name": "输入一个名称以标识您的开发会话(例如 \"alice\"、\"bob\")"
+	},
 	"upgrade": {
 		"title": "升级中心",
 		"modules": "模块",
@@ -1065,6 +1086,43 @@
 		"console": "控制台",
 		"no_segments": "未找到模块",
 		"modules_synced": "模块已同步！",
-		"syncing_modules": "正在同步模块..."
+		"syncing_modules": "正在同步模块",
+		"syncing_satellites_to_console": "正在将卫星同步到控制台...",
+		"syncing_satellites_to_mctrl": "正在将卫星同步到任务控制中心... ({0})",
+		"syncing_orbiters_to_console": "正在将轨道器同步到控制台...",
+		"syncing_orbiters_to_mctrl": "正在将轨道器同步到任务控制中心... ({0})"
+	},
+	"automation": {
+		"title": "部署",
+		"description": "直接从 GitHub Actions 构建、部署和发布您的 Satellite 的无服务器函数。通过配置来自您的 Git 提供商的仓库开始使用。",
+		"create_connect_title": "连接仓库",
+		"create_connect_description": "输入您要授权进行自动化部署的 GitHub 仓库 URL。",
+		"create_connect_input_placeholder": "https://github.com/owner/repo",
+		"create_connect_review_title": "审查配置",
+		"create_connect_review_description": "审查您的仓库信息。您可以稍后在设置中优化分支访问和其他选项。",
+		"repository": "仓库",
+		"provider": "提供商",
+		"open_repo": "在 GitHub 上打开仓库",
+		"create_actions_title": "设置 GitHub Actions",
+		"create_actions_configured": "✓ 仓库配置成功",
+		"create_actions_description": "复制下面的操作并将其添加到您仓库中的 <mark>{0}</mark>。选择符合您需求的工作流。",
+		"deploy_frontend": "部署前端",
+		"publish_functions": "发布函数",
+		"workflow_type": "工作流类型",
+		"package_manager": "包管理器",
+		"workflow_placeholder": "仓库或运行 ID",
+		"workflow": "工作流",
+		"reference": "引用",
+		"timestamp": "时间戳",
+		"empty": "尚无部署。您的工作流将在 GitHub Actions 运行后显示在此处。",
+		"commit": "提交",
+		"pushed_by": "推送者",
+		"manually_run_by": "手动运行者",
+		"pr_run_by": "PR 运行者",
+		"no_workflow_info": "无可用的工作流信息",
+		"view_workflow": "在 GitHub 上查看工作流运行",
+		"view_commit": "在 GitHub 上查看提交",
+		"view_branch": "在 GitHub 上查看分支",
+		"view_contributor": "在 GitHub 上查看贡献者"
 	}
 }
