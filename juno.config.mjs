@@ -26,9 +26,9 @@ export default defineConsoleConfig(({ mode }) => ({
 			}
 		}
 	}),
-	...(mode === 'development' && {
+	...(mode === 'production' && {
 		api: {
-			url: 'http://localhost:3000'
+			url: 'https://api.juno.build' // 'http://localhost:3000' for local dev when API is running
 		}
 	})
 }));

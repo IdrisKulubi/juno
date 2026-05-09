@@ -2,18 +2,22 @@
 	import { nonNullish } from '@dfinity/utils';
 	import AuthConfigModal from '$lib/components/modals/auth/AuthConfigModal.svelte';
 	import UserDetailsModal from '$lib/components/modals/auth/UserDetailsModal.svelte';
+	import AutomationConnectRepositoryModal from '$lib/components/modals/automation/AutomationConnectRepositoryModal.svelte';
+	import AutomationKeysConfigModal from '$lib/components/modals/automation/AutomationKeysConfigModal.svelte';
 	import CreateAutomationModal from '$lib/components/modals/automation/CreateAutomationModal.svelte';
 	import ApplyChangeModal from '$lib/components/modals/changes/ApplyChangeModal.svelte';
 	import RejectChangeModal from '$lib/components/modals/changes/RejectChangeModal.svelte';
 	import MissionControlTopUpModal from '$lib/components/modals/cycles/top-up/MissionControlTopUpModal.svelte';
 	import OrbiterTopUpModal from '$lib/components/modals/cycles/top-up/OrbiterTopUpModal.svelte';
 	import SatelliteTopUpModal from '$lib/components/modals/cycles/top-up/SatelliteTopUpModal.svelte';
+	import UfoTopUpModal from '$lib/components/modals/cycles/top-up/UfoTopUpModal.svelte';
 	import MissionControlTransferCyclesModal from '$lib/components/modals/cycles/transfer/MissionControlTransferCyclesModal.svelte';
 	import OrbiterTransferCyclesModal from '$lib/components/modals/cycles/transfer/OrbiterTransferCyclesModal.svelte';
 	import SatelliteTransferCyclesModal from '$lib/components/modals/cycles/transfer/SatelliteTransferCyclesModal.svelte';
 	import MissionControlCreateModal from '$lib/components/modals/factory/create/MissionControlCreateModal.svelte';
 	import OrbiterCreateModal from '$lib/components/modals/factory/create/OrbiterCreateModal.svelte';
 	import SatelliteCreateModal from '$lib/components/modals/factory/create/SatelliteCreateModal.svelte';
+	import UfoCreateModal from '$lib/components/modals/factory/create/UfoCreateModal.svelte';
 	import OrbiterDeleteModal from '$lib/components/modals/factory/delete/OrbiterDeleteModal.svelte';
 	import SatelliteDeleteModal from '$lib/components/modals/factory/delete/SatelliteDeleteModal.svelte';
 	import CustomDomainModal from '$lib/components/modals/hosting/CustomDomainModal.svelte';
@@ -53,6 +57,10 @@
 	<MissionControlCreateModal detail={modal.detail} onclose={close} />
 {/if}
 
+{#if modal?.type === 'create_ufo' && nonNullish(modal.detail)}
+	<UfoCreateModal detail={modal.detail} onclose={close} />
+{/if}
+
 {#if modal?.type === 'topup_satellite' && nonNullish(modal.detail)}
 	<SatelliteTopUpModal detail={modal.detail} onclose={close} />
 {/if}
@@ -63,6 +71,10 @@
 
 {#if modal?.type === 'topup_orbiter'}
 	<OrbiterTopUpModal onclose={close} />
+{/if}
+
+{#if modal?.type === 'topup_ufo' && nonNullish(modal.detail)}
+	<UfoTopUpModal detail={modal.detail} onclose={close} />
 {/if}
 
 {#if modal?.type === 'add_custom_domain' && nonNullish(modal.detail)}
@@ -167,4 +179,12 @@
 
 {#if modal?.type === 'create_automation' && nonNullish(modal.detail)}
 	<CreateAutomationModal detail={modal.detail} onclose={close} />
+{/if}
+
+{#if modal?.type === 'edit_automation_keys_config' && nonNullish(modal.detail)}
+	<AutomationKeysConfigModal detail={modal.detail} onclose={close} />
+{/if}
+
+{#if modal?.type === 'edit_automation_connect_repository_config' && nonNullish(modal.detail)}
+	<AutomationConnectRepositoryModal detail={modal.detail} onclose={close} />
 {/if}

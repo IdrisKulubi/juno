@@ -6,22 +6,22 @@ import { detachSegment } from '$lib/services/attach-detach/detach.services';
 import { loadSegments } from '$lib/services/segments.services';
 import { i18n } from '$lib/stores/app/i18n.store';
 import { toasts } from '$lib/stores/app/toasts.store';
-import type { OptionIdentity } from '$lib/types/itentity';
+import type { NullishIdentity } from '$lib/types/itentity';
 import {
 	type FactoryDeleteProgress,
 	FactoryDeleteProgressStep
 } from '$lib/types/progress-factory-delete';
-import type { Option } from '$lib/types/utils';
 import { isNullish } from '@dfinity/utils';
+import type { Nullish } from '@dfinity/zod-schemas';
 import type { Identity } from '@icp-sdk/core/agent';
 import type { Principal } from '@icp-sdk/core/principal';
 import { get } from 'svelte/store';
 
 interface DeleteWizardParams {
 	segmentId: Principal;
-	segment: 'satellite' | 'orbiter';
-	missionControlId: Option<Principal>;
-	identity: OptionIdentity;
+	segment: 'satellite' | 'orbiter' | 'ufo';
+	missionControlId: Nullish<Principal>;
+	identity: NullishIdentity;
 	cyclesToDeposit: bigint;
 	canisterIdForDeposit: Principal;
 	monitoringEnabled: boolean;
@@ -106,6 +106,8 @@ export const deleteSegmentWizard = async ({
 		return { result: 'warn' };
 	}
 
+	// TODO: deposit cycles with ufo
+
 	try {
 		// 1. deposit_cycles to move out the cycles the devs want to keep
 		const depositFn = async () => {
@@ -173,7 +175,8 @@ export const deleteSegmentWizard = async ({
 				missionControlId,
 				reload: true,
 				reloadSatellites: segment === 'satellite',
-				reloadOrbiters: segment === 'orbiter'
+				reloadOrbiters: segment === 'orbiter',
+				reloadUfos: segment === 'ufo'
 			});
 		};
 

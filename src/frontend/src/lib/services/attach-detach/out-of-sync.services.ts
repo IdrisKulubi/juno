@@ -1,23 +1,34 @@
 import { setManySegments } from '$lib/api/console.api';
-import { consoleOrbiters, consoleSatellites } from '$lib/derived/console/segments.derived';
+import {
+	consoleOrbiters,
+	consoleSatellites,
+	consoleUfos
+} from '$lib/derived/console/segments.derived';
 import { mctrlOrbiters } from '$lib/derived/mission-control/mission-control-orbiters.derived';
 import { mctrlSatellites } from '$lib/derived/mission-control/mission-control-satellites.derived';
-import { outOfSyncOrbiters, outOfSyncSatellites } from '$lib/derived/out-of-sync.derived';
+import { mctrlUfos } from '$lib/derived/mission-control/mission-control-ufos.derived';
+import {
+	outOfSyncOrbiters,
+	outOfSyncSatellites,
+	outOfSyncUfos
+} from '$lib/derived/out-of-sync.derived';
 import { execute } from '$lib/services/_progress.services';
 import {
 	setMissionControlAsControllerAndAttachOrbiter,
-	setMissionControlAsControllerAndAttachSatellite
+	setMissionControlAsControllerAndAttachSatellite,
+	setMissionControlAsControllerAndAttachUfo
 } from '$lib/services/factory/_factory.attach.services';
 import { loadSegments } from '$lib/services/segments.services';
 import { i18n } from '$lib/stores/app/i18n.store';
 import { toasts } from '$lib/stores/app/toasts.store';
-import type { OptionIdentity } from '$lib/types/itentity';
+import type { NullishIdentity } from '$lib/types/itentity';
 import type { MissionControlId } from '$lib/types/mission-control';
 import type { Orbiter } from '$lib/types/orbiter';
 import { type OutOfSyncProgress, OutOfSyncProgressStep } from '$lib/types/progress-out-of-sync';
 import type { Satellite } from '$lib/types/satellite';
-import type { Option } from '$lib/types/utils';
+import type { Ufo } from '$lib/types/ufo';
 import { isNullish, toNullable } from '@dfinity/utils';
+import type { Nullish } from '@dfinity/zod-schemas';
 import type { Identity } from '@icp-sdk/core/agent';
 import type { Principal } from '@icp-sdk/core/principal';
 import { get } from 'svelte/store';
@@ -28,8 +39,8 @@ export const reconcileSegments = async ({
 	onProgress,
 	onSyncTextProgress
 }: {
-	identity: OptionIdentity;
-	missionControlId: Option<MissionControlId>;
+	identity: NullishIdentity;
+	missionControlId: Nullish<MissionControlId>;
 	onProgress: (progress: OutOfSyncProgress | undefined) => void;
 	onSyncTextProgress: (text: string) => void;
 }): Promise<{ result: 'ok' } | { result: 'error'; err?: unknown }> => {
@@ -52,8 +63,9 @@ export const reconcileSegments = async ({
 
 	const divergentSatellites = get(outOfSyncSatellites);
 	const divergentOrbiters = get(outOfSyncOrbiters);
+	const divergentUfos = get(outOfSyncUfos);
 
-	if (divergentSatellites !== true && divergentOrbiters !== true) {
+	if (divergentSatellites !== true && divergentOrbiters !== true && divergentUfos !== true) {
 		toasts.warn(get(i18n).errors.reconcile_no_divergence);
 		return { result: 'error' };
 	}
@@ -75,7 +87,8 @@ export const reconcileSegments = async ({
 				missionControlId,
 				reload: true,
 				reloadOrbiters: true,
-				reloadSatellites: true
+				reloadSatellites: true,
+				reloadUfos: true
 			});
 		};
 		await execute({ fn: reload, onProgress, step: OutOfSyncProgressStep.Reload });
@@ -101,6 +114,8 @@ const reconcileAllSegments = async (params: ReconcileParams) => {
 	await reconcileSatellites(params);
 
 	await reconcileOrbiters(params);
+
+	await reconcileUfos(params);
 };
 
 const reconcileSatellites = async ({
@@ -213,6 +228,54 @@ const reconcileOrbiters = async ({
 	});
 };
 
+const reconcileUfos = async ({ identity, missionControlId, onTextProgress }: ReconcileParams) => {
+	const consoleUfs = get(consoleUfos);
+	const mctrlUfs = get(mctrlUfos);
+
+	const attachConsoleUfos = (mctrlUfs ?? []).filter(
+		({ ufo_id: segment_id }) =>
+			(consoleUfs ?? []).find(({ ufo_id }) => ufo_id.toText() === segment_id.toText()) === undefined
+	);
+
+	const attachMctrlUfos = (consoleUfs ?? []).filter(
+		({ ufo_id: segment_id }) =>
+			(mctrlUfs ?? []).find(({ ufo_id }) => ufo_id.toText() === segment_id.toText()) === undefined
+	);
+
+	type SegmentWithoutId = Omit<Ufo, 'ufo_id'>;
+
+	const attachFn: AttachFn<SegmentWithoutId> = async ({ segment: { segmentId, ...rest } }) => {
+		await setMissionControlAsControllerAndAttachUfo({
+			missionControlId,
+			identity,
+			ufo: {
+				ufo_id: segmentId,
+				...rest
+			}
+		});
+	};
+
+	await attachWithMissionControl<SegmentWithoutId>({
+		onTextProgress,
+		segmentType: 'ufo',
+		segments: attachMctrlUfos.map(({ ufo_id: segmentId, ...rest }) => ({
+			...rest,
+			segmentId
+		})),
+		attachFn
+	});
+
+	await attachWithConsole({
+		identity,
+		onTextProgress,
+		segmentType: 'ufo',
+		segments: attachConsoleUfos.map(({ ufo_id, metadata }) => ({
+			segmentId: ufo_id,
+			metadata
+		}))
+	});
+};
+
 type SegmentWithoutId = Omit<Satellite, 'satellite_id'> | Omit<Orbiter, 'orbiter_id'>;
 
 type AttachSegment<T extends SegmentWithoutId> = {
@@ -235,7 +298,7 @@ const attachWithMissionControl = async <T extends SegmentWithoutId>({
 	attachFn
 }: Pick<ReconcileParams, 'onTextProgress'> & {
 	segments: AttachSegment<T>[];
-	segmentType: 'satellite' | 'orbiter';
+	segmentType: 'satellite' | 'orbiter' | 'ufo';
 	attachFn: AttachFn<T>;
 }) => {
 	// We do the check for the lengths here. Not really graceful but,
@@ -256,9 +319,11 @@ const attachWithMissionControl = async <T extends SegmentWithoutId>({
 		};
 
 		const text =
-			segmentType === 'orbiter'
-				? get(i18n).out_of_sync.syncing_orbiters_to_mctrl
-				: get(i18n).out_of_sync.syncing_satellites_to_mctrl;
+			segmentType === 'ufo'
+				? get(i18n).out_of_sync.syncing_ufos_to_mctrl
+				: segmentType === 'orbiter'
+					? get(i18n).out_of_sync.syncing_orbiters_to_mctrl
+					: get(i18n).out_of_sync.syncing_satellites_to_mctrl;
 
 		onTextProgress(text.replace('{0}', `${progress.index} / ${progress.total}`));
 	};
@@ -277,7 +342,7 @@ const attachWithConsole = async <T extends SegmentWithoutId>({
 	segmentType
 }: {
 	segments: Pick<AttachSegment<T>, 'segmentId' | 'metadata'>[];
-	segmentType: 'satellite' | 'orbiter';
+	segmentType: 'satellite' | 'orbiter' | 'ufo';
 } & Pick<ReconcileParams, 'identity' | 'onTextProgress'>) => {
 	// We do the check for the lengths here. Not really graceful but,
 	// avoid to duplicate the assertions for both Satellites and Orbiters
@@ -286,9 +351,11 @@ const attachWithConsole = async <T extends SegmentWithoutId>({
 	}
 
 	const text =
-		segmentType === 'orbiter'
-			? get(i18n).out_of_sync.syncing_orbiters_to_console
-			: get(i18n).out_of_sync.syncing_satellites_to_console;
+		segmentType === 'ufo'
+			? get(i18n).out_of_sync.syncing_ufos_to_console
+			: segmentType === 'orbiter'
+				? get(i18n).out_of_sync.syncing_orbiters_to_console
+				: get(i18n).out_of_sync.syncing_satellites_to_console;
 
 	onTextProgress(text);
 
@@ -296,7 +363,12 @@ const attachWithConsole = async <T extends SegmentWithoutId>({
 		identity,
 		args: segments.map(({ segmentId: segment_id, metadata }) => ({
 			segment_id,
-			segment_kind: segmentType === 'orbiter' ? { Orbiter: null } : { Satellite: null },
+			segment_kind:
+				segmentType === 'ufo'
+					? { Ufo: null }
+					: segmentType === 'orbiter'
+						? { Orbiter: null }
+						: { Satellite: null },
 			metadata: toNullable(metadata)
 		}))
 	});

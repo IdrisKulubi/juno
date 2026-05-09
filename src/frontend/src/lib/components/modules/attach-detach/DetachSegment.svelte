@@ -14,7 +14,7 @@
 	import { i18nCapitalize, i18nFormat } from '$lib/utils/i18n.utils';
 
 	interface Props {
-		segment: 'satellite' | 'orbiter';
+		segment: 'satellite' | 'orbiter' | 'ufo';
 		monitoringEnabled: boolean;
 		segmentId: Principal;
 		ondetach: () => void;
@@ -42,7 +42,8 @@
 			missionControlId: $missionControlId,
 			reload: true,
 			reloadSatellites: segment === 'satellite',
-			reloadOrbiters: segment === 'orbiter'
+			reloadOrbiters: segment === 'orbiter',
+			reloadUfos: segment === 'ufo'
 		});
 
 		busy.stop();
@@ -72,7 +73,7 @@
 
 <button class="menu" onclick={() => (visible = true)}><IconLinkOff /> {$i18n.core.detach}</button>
 
-<Confirmation bind:visible on:junoYes={detach} on:junoNo={close}>
+<Confirmation onno={close} onyes={detach} bind:visible>
 	{#snippet title()}
 		<Text key="canisters.detach_title" value={segment} />
 	{/snippet}

@@ -1,7 +1,8 @@
 import {
 	CONSOLE_CANISTER_ID,
 	GITHUB_CLIENT_ID,
-	GOOGLE_CLIENT_ID
+	GOOGLE_CLIENT_ID,
+	JUNO_API_URL
 } from '$lib/constants/app.constants';
 import { AuthClientProvider } from '$lib/providers/auth-client.provider';
 import {
@@ -11,7 +12,7 @@ import {
 import { i18n } from '$lib/stores/app/i18n.store';
 import { toasts } from '$lib/stores/app/toasts.store';
 import { authStore } from '$lib/stores/auth.store';
-import type { SignInOpenIdProvider } from '$lib/types/auth';
+import type { OpenIdAuthProvider } from '$lib/types/auth';
 import { SignInInitError } from '$lib/types/errors';
 import { container } from '$lib/utils/juno.utils';
 import { isNullish, nonNullish } from '@dfinity/utils';
@@ -20,7 +21,7 @@ import {
 	type AuthenticationGitHubRedirect,
 	type RequestGitHubJwtRedirect,
 	requestJwt
-} from '@junobuild/auth';
+} from '@junobuild/auth/delegation';
 import { get } from 'svelte/store';
 
 export const signInWithGoogle = async () => {
@@ -31,8 +32,6 @@ export const signInWithGoogle = async () => {
 };
 
 export const signInWithGitHub = async () => {
-	const JUNO_API_URL = import.meta.env.VITE_JUNO_API_URL;
-
 	await signInWithOpenId<Pick<RequestGitHubJwtRedirect, 'initUrl'>>({
 		clientId: GITHUB_CLIENT_ID,
 		provider: 'github',
@@ -46,7 +45,7 @@ export const signInWithGitHub = async () => {
 
 interface SignInWithOpenIdParams<T> {
 	clientId: string | undefined;
-	provider: SignInOpenIdProvider;
+	provider: OpenIdAuthProvider;
 	extraArgs?: T;
 }
 
@@ -140,7 +139,7 @@ const authenticateWithOpenID = async (params: AuthenticateWithOpenIdRedirectPara
 export const handleRedirectCallback = async ({
 	provider
 }: {
-	provider: SignInOpenIdProvider;
+	provider: OpenIdAuthProvider;
 }): Promise<{
 	result: 'ok' | 'error';
 	err?: unknown;
@@ -150,8 +149,6 @@ export const handleRedirectCallback = async ({
 			if (provider === 'google') {
 				return { google: null };
 			}
-
-			const JUNO_API_URL = import.meta.env.VITE_JUNO_API_URL;
 
 			return {
 				github: nonNullish(JUNO_API_URL)

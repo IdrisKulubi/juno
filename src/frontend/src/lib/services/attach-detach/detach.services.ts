@@ -1,19 +1,19 @@
 import { unsetSegment } from '$lib/api/console.api';
-import { unsetOrbiter, unsetSatellite } from '$lib/api/mission-control.api';
+import { unsetOrbiter, unsetSatellite, unsetUfo } from '$lib/api/mission-control.api';
 import { i18n } from '$lib/stores/app/i18n.store';
 import { toasts } from '$lib/stores/app/toasts.store';
-import type { OptionIdentity } from '$lib/types/itentity';
+import type { NullishIdentity } from '$lib/types/itentity';
 import type { MissionControlId } from '$lib/types/mission-control';
-import type { Option } from '$lib/types/utils';
 import { isNullish, nonNullish } from '@dfinity/utils';
+import type { Nullish } from '@dfinity/zod-schemas';
 import type { Principal } from '@icp-sdk/core/principal';
 import { get } from 'svelte/store';
 
 interface DetachParams {
-	identity: OptionIdentity;
-	missionControlId: Option<MissionControlId>;
+	identity: NullishIdentity;
+	missionControlId: Nullish<MissionControlId>;
 	monitoringEnabled: boolean;
-	segment: 'satellite' | 'orbiter';
+	segment: 'satellite' | 'orbiter' | 'ufo';
 	segmentId: Principal;
 }
 
@@ -70,7 +70,12 @@ const detachWithConsole = async ({
 		identity,
 		args: {
 			segment_id,
-			segment_kind: segment === 'orbiter' ? { Orbiter: null } : { Satellite: null }
+			segment_kind:
+				segment === 'orbiter'
+					? { Orbiter: null }
+					: segment === 'ufo'
+						? { Ufo: null }
+						: { Satellite: null }
 		}
 	});
 };
@@ -78,7 +83,7 @@ const detachWithConsole = async ({
 interface DetachWithMissionControlParams {
 	missionControlId: MissionControlId;
 	canisterId: Principal;
-	identity: OptionIdentity;
+	identity: NullishIdentity;
 }
 
 const detachWithMissionControl = async ({
@@ -92,6 +97,10 @@ const detachWithMissionControl = async ({
 		await unsetOrbiter({ ...rest, orbiterId: canisterId });
 	};
 
+	const detachUfo = async ({ canisterId, ...rest }: DetachWithMissionControlParams) => {
+		await unsetUfo({ ...rest, ufoId: canisterId });
+	};
+
 	const detachSatellite = async ({
 		canisterId,
 		missionControlId,
@@ -100,7 +109,8 @@ const detachWithMissionControl = async ({
 		await unsetSatellite({ missionControlId, satelliteId: canisterId, identity });
 	};
 
-	const fn = segment === 'orbiter' ? detachOrbiter : detachSatellite;
+	const fn =
+		segment === 'orbiter' ? detachOrbiter : segment === 'ufo' ? detachUfo : detachSatellite;
 
 	await fn({
 		...rest,

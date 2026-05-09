@@ -17,15 +17,15 @@ const prepareStats = ({ allDevs, from }) => {
 const statsGoogleDevs = (allDevs) => {
 	const { devs, formattedDate } = prepareStats({ allDevs, from: '2025-10-25T08:00:00' });
 
-	const [ii, google] = devs.reduce(
+	const [ii, openid] = devs.reduce(
 		(acc, current) => {
-			const [ii, google] = acc;
+			const [ii, openid] = acc;
 
 			const provider = fromNullable(current[1]?.provider);
 
 			return [
 				[...ii, ...('OpenId' in (provider ?? {}) ? [] : [current])],
-				[...google, ...('OpenId' in (provider ?? {}) ? [current] : [])]
+				[...openid, ...('OpenId' in (provider ?? {}) ? [current] : [])]
 			];
 		},
 		[[], []]
@@ -33,11 +33,11 @@ const statsGoogleDevs = (allDevs) => {
 
 	console.log(`Developers since ${formattedDate}:`, devs.length);
 	console.log('Internet Identity:', ii.length);
-	console.log('Google:', google.length);
+	console.log('Google & GitHub:', openid.length);
 };
 
-const statsGitHubDevs = (allDevs) => {
-	const { devs, formattedDate } = prepareStats({ allDevs, from: '2026-01-23T15:00:00' });
+const statsWithGitHubDevs = ({ allDevs, from = '2026-01-23T15:00:00' }) => {
+	const { devs, formattedDate } = prepareStats({ allDevs, from });
 
 	const [ii, google, github] = devs.reduce(
 		(acc, current) => {
@@ -79,8 +79,11 @@ const devs = await fetchDevs(mainnet);
 console.log('----------------------------');
 countDevs(devs);
 
-console.log('----------------------------');
+console.log('------- Google launch ------');
 statsGoogleDevs(devs);
 
-console.log('----------------------------');
-statsGitHubDevs(devs);
+console.log('------- GitHub launch ------');
+statsWithGitHubDevs({ allDevs: devs });
+
+console.log('------- Malicious day ------');
+statsWithGitHubDevs({ allDevs: devs, from: '2026-04-04T00:00:00' });

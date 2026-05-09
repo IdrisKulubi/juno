@@ -1,24 +1,32 @@
 import type { SatelliteDid } from '$declarations';
-import type { OpenIdAuthProviderDelegationConfig } from '$declarations/satellite/satellite.did';
-import { getAuthConfig as getAuthConfigApi, setAuthConfig, setRule } from '$lib/api/satellites.api';
+import type {
+	AuthenticationConfigOpenId,
+	OpenIdAuthProviderDelegationConfig,
+	OpenIdDelegationProvider
+} from '$declarations/satellite/satellite.did';
+import { setAuthConfig, setRule } from '$lib/api/satellites.api';
 import {
 	AUTH_DEFAULT_MAX_SESSION_TIME_TO_LIVE,
 	GOOGLE_CLIENT_ID_REGEX
 } from '$lib/constants/auth.constants';
 import { DEFAULT_RATE_CONFIG_TIME_PER_TOKEN_NS } from '$lib/constants/data.constants';
 import { DbCollectionType } from '$lib/constants/rules.constants';
-import { SATELLITE_v0_0_17 } from '$lib/constants/version.constants';
-import { isSatelliteFeatureSupported } from '$lib/services/_feature.services';
 import { i18n } from '$lib/stores/app/i18n.store';
 import { toasts } from '$lib/stores/app/toasts.store';
-import type { OptionIdentity } from '$lib/types/itentity';
+import type { OpenIdAuthProvider } from '$lib/types/auth';
+import type { NullishIdentity } from '$lib/types/itentity';
 import type { Satellite } from '$lib/types/satellite';
-import type { Option } from '$lib/types/utils';
 import {
 	assertExternalAlternativeOrigins,
 	buildDeleteAuthenticationConfig,
 	buildSetAuthenticationConfig
 } from '$lib/utils/auth.config.utils';
+import {
+	filterProvidersNotGitHub,
+	filterProvidersNotGoogle,
+	findProviderGitHub,
+	findProviderGoogle
+} from '$lib/utils/auth.openid.utils';
 import {
 	fromNullable,
 	fromNullishNullable,
@@ -27,14 +35,15 @@ import {
 	notEmptyString,
 	toNullable
 } from '@dfinity/utils';
-import type { PrincipalText } from '@dfinity/zod-schemas';
+import type { Nullish } from '@dfinity/zod-schemas';
 import { Principal } from '@icp-sdk/core/principal';
+import type { PrincipalText } from '@junobuild/schema';
 import { get } from 'svelte/store';
 
 interface UpdateAuthConfigParams {
 	satellite: Satellite;
 	config: SatelliteDid.AuthenticationConfig | undefined;
-	identity: OptionIdentity;
+	identity: NullishIdentity;
 }
 
 export interface UpdateAuthConfigResult {
@@ -55,13 +64,14 @@ interface UpdateAuthConfigRulesParams extends UpdateAuthConfigParams {
 
 interface UpdateAuthConfigIIParams extends UpdateAuthConfigParams {
 	externalAlternativeOrigins: string;
-	derivationOrigin: Option<URL>;
+	derivationOrigin: Nullish<URL>;
 }
 
-interface UpdateAuthConfigGoogleParams extends UpdateAuthConfigParams {
+interface UpdateAuthConfigOpenIdParams extends UpdateAuthConfigParams {
 	clientId: string | undefined;
 	maxTimeToLive: bigint | undefined;
 	allowedTargets: PrincipalText[] | null | undefined;
+	provider: OpenIdAuthProvider | null;
 }
 
 export const updateAuthConfigRules = async ({
@@ -149,8 +159,9 @@ export const updateAuthConfigGoogle = async ({
 	clientId,
 	maxTimeToLive,
 	allowedTargets,
-	identity
-}: UpdateAuthConfigGoogleParams): Promise<UpdateAuthConfigResult> => {
+	identity,
+	provider
+}: UpdateAuthConfigOpenIdParams): Promise<UpdateAuthConfigResult> => {
 	const labels = get(i18n);
 
 	if (isNullish(identity) || isNullish(identity?.getPrincipal())) {
@@ -158,23 +169,30 @@ export const updateAuthConfigGoogle = async ({
 		return { success: 'error' };
 	}
 
+	if (isNullish(provider)) {
+		toasts.error({ text: labels.errors.auth_undefined_provider });
+		return { success: 'error' };
+	}
+
 	if (isNullish(clientId)) {
-		const { result: resultConfig } = await disableConfigGoogle({
+		const { result: resultConfig } = await disableConfigOpenId({
 			satellite,
 			config,
-			identity
+			identity,
+			provider
 		});
 
 		return { success: resultConfig === 'error' ? 'error' : 'ok' };
 	}
 
-	if (!GOOGLE_CLIENT_ID_REGEX.test(clientId)) {
+	if (provider === 'google' && !GOOGLE_CLIENT_ID_REGEX.test(clientId)) {
 		toasts.error({ text: labels.errors.auth_invalid_google_client_id });
 		return { success: 'error' };
 	}
 
 	const { result: resultConfig } = await updateConfigGoogle({
 		satellite,
+		provider,
 		clientId,
 		maxTimeToLive,
 		allowedTargets,
@@ -256,25 +274,41 @@ const updateConfigInternetIdentity = async ({
 	});
 };
 
-const disableConfigGoogle = async ({
+const disableConfigOpenId = async ({
 	satellite,
 	config,
-	identity
-}: Pick<UpdateAuthConfigGoogleParams, 'config' | 'satellite'> &
-	Required<Pick<UpdateAuthConfigParams, 'identity'>>): Promise<UpdateResult> => {
-	const openid = fromNullable(config?.openid ?? []);
-	const google = openid?.providers.find(([key]) => 'Google' in key);
+	identity,
+	provider
+}: Pick<UpdateAuthConfigOpenIdParams, 'config' | 'satellite'> &
+	Required<Pick<UpdateAuthConfigParams, 'identity'>> & {
+		provider: OpenIdAuthProvider;
+	}): Promise<UpdateResult> => {
+	const findProvider = provider === 'github' ? findProviderGitHub : findProviderGoogle;
 
-	if (isNullish(google)) {
+	const openid = fromNullable(config?.openid ?? []);
+	const openidProvider = findProvider(openid);
+
+	if (isNullish(openidProvider)) {
 		return { result: 'skip' };
 	}
 
-	// TODO: we set the all OpenID to None for simplicity reason as we do not support currently any other provider than Google
+	const filterProviders =
+		provider === 'github' ? filterProvidersNotGitHub : filterProvidersNotGoogle;
+	const openidProviders = filterProviders(openid);
+
+	const updateOpenId: AuthenticationConfigOpenId | undefined =
+		openidProviders.length > 0
+			? {
+					observatory_id: openid?.observatory_id ?? [],
+					providers: openidProviders
+				}
+			: undefined;
+
 	return await updateConfig({
 		config: {
 			internet_identity: config?.internet_identity ?? [],
 			rules: config?.rules ?? [],
-			openid: [],
+			openid: toNullable(updateOpenId),
 			version: config?.version ?? []
 		},
 		satellite,
@@ -288,14 +322,18 @@ const updateConfigGoogle = async ({
 	clientId,
 	maxTimeToLive,
 	allowedTargets,
-	identity
-}: Pick<UpdateAuthConfigGoogleParams, 'config' | 'maxTimeToLive' | 'allowedTargets' | 'satellite'> &
+	identity,
+	provider
+}: Pick<UpdateAuthConfigOpenIdParams, 'config' | 'maxTimeToLive' | 'allowedTargets' | 'satellite'> &
 	Required<Pick<UpdateAuthConfigParams, 'identity'>> & {
 		clientId: string;
+		provider: OpenIdAuthProvider;
 	}): Promise<UpdateResult> => {
+	const findProvider = provider === 'github' ? findProviderGitHub : findProviderGoogle;
+
 	const openid = fromNullable(config?.openid ?? []);
-	const google = openid?.providers.find(([key]) => 'Google' in key);
-	const providerData = google?.[1];
+	const openidProvider = findProvider(openid);
+	const providerData = openidProvider?.[1];
 	const delegation = fromNullable(providerData?.delegation ?? []);
 
 	const sameClientId = providerData?.client_id === clientId;
@@ -346,6 +384,13 @@ const updateConfigGoogle = async ({
 					}
 				: undefined;
 
+	const filterProviders =
+		provider === 'github' ? filterProvidersNotGitHub : filterProvidersNotGoogle;
+	const openidProviders = filterProviders(openid);
+
+	const delegationProvider: OpenIdDelegationProvider =
+		provider === 'github' ? { GitHub: null } : { Google: null };
+
 	return await updateConfig({
 		config: {
 			internet_identity: config?.internet_identity ?? [],
@@ -353,8 +398,9 @@ const updateConfigGoogle = async ({
 			openid: [
 				{
 					providers: [
+						...openidProviders,
 						[
-							{ Google: null },
+							delegationProvider,
 							{
 								client_id: clientId,
 								delegation: toNullable(updateDelegation)
@@ -441,42 +487,4 @@ const updateRule = async ({
 	}
 
 	return { result: 'success' };
-};
-
-export const getAuthConfig = async ({
-	satelliteId,
-	identity
-}: {
-	satelliteId: Principal;
-	identity: OptionIdentity;
-}): Promise<{
-	result: 'success' | 'error' | 'skip';
-	config?: SatelliteDid.AuthenticationConfig | undefined;
-}> => {
-	try {
-		const authConfigSupported = isSatelliteFeatureSupported({
-			satelliteId,
-			requiredMinVersion: SATELLITE_v0_0_17
-		});
-
-		if (!authConfigSupported) {
-			return { result: 'skip' };
-		}
-
-		const config = await getAuthConfigApi({
-			satelliteId,
-			identity
-		});
-
-		return { result: 'success', config: fromNullable(config) };
-	} catch (err: unknown) {
-		const labels = get(i18n);
-
-		toasts.error({
-			text: labels.errors.authentication_config_loading,
-			detail: err
-		});
-
-		return { result: 'error' };
-	}
 };

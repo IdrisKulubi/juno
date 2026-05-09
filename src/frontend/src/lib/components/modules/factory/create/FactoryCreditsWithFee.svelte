@@ -1,7 +1,9 @@
 <script lang="ts">
+	import type { Nullish } from '@dfinity/zod-schemas';
 	import type { Snippet } from 'svelte';
 	import FactoryWalletInfo from '$lib/components/modules/factory/create/FactoryWalletInfo.svelte';
 	import Html from '$lib/components/ui/Html.svelte';
+	import InlineWalletPicker from '$lib/components/wallet/InlineWalletPicker.svelte';
 	import { E8S_PER_ICP } from '$lib/constants/app.constants';
 	import { CYCLES, ICP } from '$lib/constants/token.constants';
 	import { creditsOrZero } from '$lib/derived/console/credits.derived';
@@ -13,7 +15,7 @@
 	} from '$lib/derived/wallet/balance.derived';
 	import { icpToUsd } from '$lib/derived/wallet/exchange.derived';
 	import type { SelectedToken, SelectedWallet } from '$lib/schemas/wallet.schema';
-	import type { Option } from '$lib/types/utils';
+	import { i18n } from '$lib/stores/app/i18n.store';
 	import { formatCyclesToHTML } from '$lib/utils/cycles.utils';
 	import { i18nFormat } from '$lib/utils/i18n.utils';
 	import { formatICPToHTML } from '$lib/utils/icp.utils';
@@ -23,19 +25,21 @@
 		fee: bigint;
 		priceLabel: string;
 		selectedWallet: SelectedWallet | undefined;
-		withFee: Option<bigint>;
+		withFee: Nullish<bigint>;
 		insufficientFunds?: boolean;
 		children: Snippet;
+		withCreditsMsg?: Snippet;
 		onclose: () => void;
 	}
 
 	let {
 		fee,
 		priceLabel,
-		selectedWallet,
+		selectedWallet = $bindable(undefined),
 		insufficientFunds = $bindable(true),
 		withFee = $bindable(undefined),
 		children,
+		withCreditsMsg,
 		onclose
 	}: Props = $props();
 
@@ -67,6 +71,10 @@
 	});
 </script>
 
+{#snippet walletPicker({ display }: { display: boolean })}
+	<InlineWalletPicker {display} bind:selectedWallet />
+{/snippet}
+
 {#if notEnoughCredits}
 	<p>
 		<Html
@@ -76,9 +84,15 @@
 					value: isTokenIcp(selectedToken)
 						? formatICPToHTML({ e8s: fee, bold: true, icpToUsd: $icpToUsd })
 						: formatCyclesToHTML({ e12s: fee, bold: true })
-				},
+				}
+			])}
+		/>
+		{$i18n.wallet.your_wallet}
+		{@render walletPicker({ display: true })}
+		<Html
+			text={i18nFormat($i18n.wallet.current_balance, [
 				{
-					placeholder: '{1}',
+					placeholder: '{0}',
 					value: isTokenIcp(selectedToken)
 						? formatICPToHTML({ e8s: balanceOrZero, bold: false, icpToUsd: $icpToUsd })
 						: formatCyclesToHTML({ e12s: balanceOrZero, bold: false })
@@ -86,6 +100,10 @@
 			])}
 		/>
 	</p>
+{:else}
+	{@render walletPicker({ display: false })}
+
+	{@render withCreditsMsg?.()}
 {/if}
 
 {#if insufficientFunds}

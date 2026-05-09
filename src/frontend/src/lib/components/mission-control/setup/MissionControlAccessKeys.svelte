@@ -2,9 +2,9 @@
 	import { nonNullish } from '@dfinity/utils';
 	import type { Principal } from '@icp-sdk/core/principal';
 	import type { MissionControlDid } from '$declarations';
-	import { listMissionControlControllers } from '$lib/api/mission-control.api';
 	import AccessKeys from '$lib/components/modules/access-keys/AccessKeys.svelte';
 	import { authIdentity } from '$lib/derived/auth.derived';
+	import { listMissionControlControllers } from '$lib/services/access-keys/mission-control.key.list.services';
 	import {
 		addMissionControlAccessKey,
 		removeMissionControlAccessKey
@@ -13,7 +13,8 @@
 	import type {
 		AddAccessKeyResult,
 		AddAccessKeyParams,
-		AccessKeyIdParam
+		AccessKeyIdParam,
+		AccessKeyUi
 	} from '$lib/types/access-keys';
 	import type { MissionControlId } from '$lib/types/mission-control';
 
@@ -23,7 +24,7 @@
 
 	let { missionControlId }: Props = $props();
 
-	const list = (): Promise<[Principal, MissionControlDid.Controller][]> =>
+	const list = (): Promise<[Principal, AccessKeyUi][]> =>
 		listMissionControlControllers({ missionControlId, identity: $authIdentity });
 
 	const remove = async (accessKey: AccessKeyIdParam): Promise<AddAccessKeyResult> =>
@@ -40,7 +41,7 @@
 			...accessKey
 		});
 
-	const pseudoAdminController: MissionControlDid.Controller = {
+	const pseudoAdminController: MissionControlDid.AccessKey = {
 		created_at: 0n,
 		updated_at: 0n,
 		expires_at: [],
@@ -49,13 +50,13 @@
 		scope: { Admin: null }
 	};
 
-	let extraControllers = $derived<[Principal, MissionControlDid.Controller][]>([
+	let extraControllers = $derived<[Principal, MissionControlDid.AccessKey][]>([
 		[missionControlId, pseudoAdminController],
 		...(nonNullish($authIdentity)
 			? [
 					[$authIdentity.getPrincipal(), pseudoAdminController] as [
 						Principal,
-						MissionControlDid.Controller
+						MissionControlDid.AccessKey
 					]
 				]
 			: [])

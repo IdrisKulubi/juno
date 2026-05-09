@@ -58,7 +58,7 @@
 	<div>
 		{#if notEmptyString(workflowName)}
 			<p class="workflow">
-				{workflowName}
+				<span class="name">{workflowName}</span>
 				{#if notEmptyString(runNumber)}(<a
 						aria-label={$i18n.automation.view_workflow}
 						href={runIdHref}
@@ -85,12 +85,24 @@
 {/if}
 
 <style lang="scss">
+	@use '../../../../styles/mixins/text';
+
 	.workflow {
+		display: inline-flex;
 		margin: 0 0 var(--padding-0_25x);
+
+		font-weight: var(--font-weight-bold);
 
 		a {
 			text-decoration: none;
 		}
+	}
+
+	.name {
+		display: inline-block;
+		max-width: 200px;
+
+		@include text.truncate;
 	}
 
 	.event {

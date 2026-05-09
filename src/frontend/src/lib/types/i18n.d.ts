@@ -101,6 +101,12 @@ interface I18nCore {
 	staging: string;
 	test: string;
 	unspecified: string;
+	two_minutes: string;
+	five_minutes: string;
+	ten_minutes: string;
+	fifteen_minutes: string;
+	thirty_minutes: string;
+	forty_five_minutes: string;
 	an_hour: string;
 	two_hours: string;
 	four_hours: string;
@@ -118,6 +124,12 @@ interface I18nCore {
 	custom: string;
 	launch: string;
 	redirecting: string;
+	lets_go: string;
+	name: string;
+	environment: string;
+	tags: string;
+	edit_details: string;
+	tags_placeholder: string;
 }
 
 interface I18nCanisters {
@@ -153,6 +165,7 @@ interface I18nCanisters {
 	top_up_mission_control_done: string;
 	top_up_satellite_done: string;
 	top_up_orbiter_done: string;
+	top_up_ufo_done: string;
 	daily_consumption: string;
 	queries: string;
 	calls: string;
@@ -224,6 +237,7 @@ interface I18nCanisters {
 	warning_mission_control_low_cycles: string;
 	warning_satellite_low_cycles: string;
 	warning_orbiter_low_cycles: string;
+	warning_ufo_low_cycles: string;
 	warning_satellite_heap_memory: string;
 	warning_orbiter_heap_memory: string;
 	warning_indicator: string;
@@ -304,7 +318,6 @@ interface I18nLaunchpad {
 	loading_launchpad: string;
 	go_launchpad: string;
 	launchpad: string;
-	attach: string;
 	morning: string;
 	afternoon: string;
 	good_evening: string;
@@ -313,31 +326,31 @@ interface I18nLaunchpad {
 	commander: string;
 	spacebuilder: string;
 	captain: string;
+	getting_started_credits: string;
+	attach_title: string;
+	attach_description: string;
+	attach_id: string;
+	attach_to_mission_control: string;
 }
 
 interface I18nSatellites {
 	title: string;
 	launch: string;
 	launch_first: string;
-	create: string;
 	search: string;
 	satellite: string;
 	ready: string;
 	initializing: string;
 	start: string;
-	description: string;
-	name: string;
 	satellite_name: string;
 	what_are_you_building: string;
 	website: string;
 	website_description: string;
+	website_hint: string;
 	application: string;
 	application_description: string;
-	environment: string;
-	tags: string;
-	tags_placeholder: string;
+	application_hint: string;
 	enter_name: string;
-	edit_details: string;
 	create_satellite_price: string;
 	loading_satellites: string;
 	overview: string;
@@ -346,6 +359,13 @@ interface I18nSatellites {
 	extended_version: string;
 	build: string;
 	attaching: string;
+	hooray_free_satellite: string;
+	get_started: string;
+	choose_name: string;
+	options: string;
+	fine_tune_config: string;
+	review_cost: string;
+	go_for_launch: string;
 }
 
 interface I18nMission_control {
@@ -363,6 +383,7 @@ interface I18nMission_control {
 	attaching: string;
 	warn_attaching: string;
 	warn_satellite_metadata_update: string;
+	warn_ufo_metadata_update: string;
 }
 
 interface I18nWallet {
@@ -422,6 +443,9 @@ interface I18nWallet {
 	convert_transferring: string;
 	convert_minting: string;
 	convert_done: string;
+	your_wallet: string;
+	current_balance: string;
+	toggle_wallet: string;
 }
 
 interface I18nAuthentication {
@@ -502,8 +526,6 @@ interface I18nAnalytics {
 	others: string;
 	browsers: string;
 	operating_systems: string;
-	attach: string;
-	attach_id: string;
 	score: string;
 	rating: string;
 	web_vitals: string;
@@ -616,13 +638,17 @@ interface I18nErrors {
 	cli_missing_params: string;
 	cli_missing_selection: string;
 	cli_unexpected_error: string;
-	satellite_name_missing: string;
+	segment_name_missing: string;
 	satellite_kind: string;
 	satellite_unexpected_error: string;
 	satellite_no_found: string;
 	satellite_metadata_update: string;
 	satellite_missing_name: string;
 	satellites_not_loaded: string;
+	ufo_metadata_update: string;
+	create_ufo_name_missing: string;
+	create_ufo_unexpected_error: string;
+	ufo_not_found: string;
 	canister_stop: string;
 	canister_start: string;
 	canister_delete: string;
@@ -635,6 +661,7 @@ interface I18nErrors {
 	load_credits: string;
 	load_documents: string;
 	load_users: string;
+	load_cdn: string;
 	load_workflows: string;
 	load_settings: string;
 	load_user_data: string;
@@ -652,6 +679,7 @@ interface I18nErrors {
 	controllers_no_selection: string;
 	controllers_add: string;
 	controllers_delete: string;
+	ufo_controller_not_admin: string;
 	data_delete: string;
 	key_invalid: string;
 	full_path_invalid: string;
@@ -678,6 +706,7 @@ interface I18nErrors {
 	analytics_page_views_export: string;
 	satellites_loading: string;
 	orbiters_loading: string;
+	ufos_loading: string;
 	segments_loading: string;
 	orbiter_configuration_missing: string;
 	orbiter_configuration_unexpected: string;
@@ -696,8 +725,6 @@ interface I18nErrors {
 	invalid_amount_to_convert_icp_to_cycles: string;
 	transfer_cycles: string;
 	cannot_fetch_logs: string;
-	authentication_config_loading: string;
-	automation_config_loading: string;
 	satellite_config_loading: string;
 	no_file_selected_for_upload: string;
 	upload_error: string;
@@ -708,6 +735,7 @@ interface I18nErrors {
 	invalid_email: string;
 	invalid_destination: string;
 	invalid_metadata: string;
+	update_metadata_error: string;
 	empty_amount: string;
 	cycles_transfer_not_supported: string;
 	convert_icp_to_cycles_not_supported: string;
@@ -735,6 +763,7 @@ interface I18nErrors {
 	auth_domain_config: string;
 	auth_external_alternative_origins: string;
 	auth_invalid_google_client_id: string;
+	auth_undefined_provider: string;
 	mission_control_not_loaded: string;
 	mission_control_not_found: string;
 	mission_control_settings_not_loaded: string;
@@ -773,7 +802,10 @@ interface I18nErrors {
 	build_repo_key_invalid_github_url: string;
 	build_repo_key_owner_not_found: string;
 	build_repo_key_repo_not_found: string;
-	create_automation_config: string;
+	repo_references_invalid: string;
+	save_automation_config: string;
+	automation_config_undefined: string;
+	workflows_loading: string;
 }
 
 interface I18nDocument {
@@ -1011,8 +1043,12 @@ interface I18nMonitoring {
 
 interface I18nPreferences {
 	title: string;
-	dev_id: string;
 	session_expires_in: string;
+}
+
+interface I18nProfile {
+	title: string;
+	dev_id: string;
 }
 
 interface I18nEmulator {
@@ -1085,6 +1121,10 @@ interface I18nChanges {
 interface I18nCdn {
 	title: string;
 	empty: string;
+	delete_asset: string;
+	delete_question: string;
+	clear_cdn: string;
+	clear_cdn_question: string;
 }
 
 interface I18nNotifications {
@@ -1126,12 +1166,14 @@ interface I18nOut_of_sync {
 	syncing_satellites_to_mctrl: string;
 	syncing_orbiters_to_console: string;
 	syncing_orbiters_to_mctrl: string;
+	syncing_ufos_to_console: string;
+	syncing_ufos_to_mctrl: string;
 }
 
 interface I18nAutomation {
 	title: string;
 	description: string;
-	create_connect_title: string;
+	connect_repository: string;
 	create_connect_description: string;
 	create_connect_input_placeholder: string;
 	create_connect_review_title: string;
@@ -1149,8 +1191,10 @@ interface I18nAutomation {
 	workflow_placeholder: string;
 	workflow: string;
 	reference: string;
+	references: string;
+	references_placeholder: string;
 	timestamp: string;
-	empty: string;
+	empty_deployments: string;
 	commit: string;
 	pushed_by: string;
 	manually_run_by: string;
@@ -1160,6 +1204,32 @@ interface I18nAutomation {
 	view_commit: string;
 	view_branch: string;
 	view_contributor: string;
+	keys: string;
+	access_duration: string;
+	edit_automation_keys: string;
+	empty_repositories: string;
+	delete_title: string;
+	delete_question: string;
+	warn_skylab: string;
+	last_deployments: string;
+	deployments_not_configured: string;
+	no_deployments_yet: string;
+}
+
+interface I18nUfo {
+	title: string;
+	launch: string;
+	initializing: string;
+	attaching: string;
+	description: string;
+	create_ufo_price: string;
+	ufo_name: string;
+	enter_name: string;
+	create: string;
+	ready: string;
+	overview: string;
+	loading_ufos: string;
+	id: string;
 }
 
 interface I18n {
@@ -1190,6 +1260,7 @@ interface I18n {
 	users: I18nUsers;
 	monitoring: I18nMonitoring;
 	preferences: I18nPreferences;
+	profile: I18nProfile;
 	emulator: I18nEmulator;
 	dev: I18nDev;
 	upgrade: I18nUpgrade;
@@ -1200,4 +1271,5 @@ interface I18n {
 	spotlight: I18nSpotlight;
 	out_of_sync: I18nOut_of_sync;
 	automation: I18nAutomation;
+	ufo: I18nUfo;
 }

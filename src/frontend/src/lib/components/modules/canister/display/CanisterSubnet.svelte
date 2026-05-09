@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { nonNullish, notEmptyString } from '@dfinity/utils';
-	import type { PrincipalText } from '@dfinity/zod-schemas';
 	import type { Principal } from '@icp-sdk/core/principal';
+	import type { PrincipalText } from '@junobuild/schema';
 	import { onMount } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import Identifier from '$lib/components/ui/Identifier.svelte';
@@ -10,8 +10,6 @@
 	import { loadSubnetId } from '$lib/services/ic-mgmt/subnets.services';
 	import { i18n } from '$lib/stores/app/i18n.store';
 	import { subnetStore } from '$lib/stores/ic-mgmt/subnet.store';
-	import type { Subnet } from '$lib/types/subnet';
-	import type { Option } from '$lib/types/utils';
 
 	interface Props {
 		canisterId: Principal;
@@ -25,7 +23,7 @@
 		});
 	});
 
-	let subnet: Option<Subnet> = $derived($subnetStore?.[canisterId.toText()]);
+	let subnet = $derived($subnetStore?.[canisterId.toText()]);
 
 	let subnetId: PrincipalText | undefined = $derived(subnet?.subnetId);
 </script>

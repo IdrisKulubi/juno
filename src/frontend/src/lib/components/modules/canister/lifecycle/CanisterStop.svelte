@@ -16,7 +16,7 @@
 	interface Props {
 		canister: CanisterSyncData;
 		monitoringEnabled: boolean;
-		segment: 'satellite' | 'orbiter';
+		segment: 'satellite' | 'orbiter' | 'ufo';
 		onstop: () => void;
 	}
 
@@ -77,7 +77,7 @@
 
 <button class="menu" onclick={() => (visible = true)}><IconStop /> {$i18n.core.stop}</button>
 
-<Confirmation bind:visible on:junoYes={stop} on:junoNo={close}>
+<Confirmation onno={close} onyes={stop} bind:visible>
 	{#snippet title()}
 		<Text key="canisters.stop_title" value={segment} />
 	{/snippet}

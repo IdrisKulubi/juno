@@ -3,15 +3,16 @@
 	import { fade } from 'svelte/transition';
 	import type { SatelliteDid } from '$declarations';
 	import AutomationCreateActions from '$lib/components/satellites/automation/create/AutomationCreateActions.svelte';
-	import AutomationCreateConnectForm from '$lib/components/satellites/automation/create/AutomationCreateConnectForm.svelte';
-	import AutomationCreateConnectReview from '$lib/components/satellites/automation/create/AutomationCreateConnectReview.svelte';
+	import RepositoryConnectForm from '$lib/components/satellites/automation/repository/RepositoryConnectForm.svelte';
+	import RepositoryConnectReview from '$lib/components/satellites/automation/repository/RepositoryConnectReview.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import SpinnerModal from '$lib/components/ui/SpinnerModal.svelte';
 	import { authIdentity } from '$lib/derived/auth.derived';
-	import { createAutomationConfig } from '$lib/services/satellite/automation/automation.config.services';
+	import { createAutomationConfig } from '$lib/services/satellite/automation/automation.config.create.services';
 	import { wizardBusy } from '$lib/stores/app/busy.store';
 	import { i18n } from '$lib/stores/app/i18n.store';
 	import type { JunoModalDetail, JunoModalWithSatellite } from '$lib/types/modal';
+	import type { WorkflowReferences } from '$lib/types/workflow';
 
 	interface Props {
 		detail: JunoModalDetail;
@@ -26,11 +27,21 @@
 
 	let step: 'init' | 'review' | 'in_progress' | 'ready' | 'error' = $state('init');
 
-	let repoUrl = $state('');
-	let repoKey = $state<SatelliteDid.RepositoryKey | undefined>();
+	let repoUrlInput = $state('');
+	let repoReferencesInput = $state('');
 
-	const onConnect = ({ repoKey: k }: { repoKey: SatelliteDid.RepositoryKey }) => {
+	let repoKey = $state<SatelliteDid.RepositoryKey | undefined>();
+	let repoReferences = $state<WorkflowReferences | undefined>(undefined);
+
+	const onConnect = ({
+		repoKey: k,
+		repoReferences: r
+	}: {
+		repoKey: SatelliteDid.RepositoryKey;
+		repoReferences: WorkflowReferences | undefined;
+	}) => {
 		repoKey = k;
+		repoReferences = r;
 		step = 'review';
 	};
 
@@ -41,7 +52,8 @@
 		const result = await createAutomationConfig({
 			satellite,
 			identity: $authIdentity,
-			repoKey
+			repoKey,
+			repoReferences
 		});
 
 		wizardBusy.stop();
@@ -63,10 +75,15 @@
 		</SpinnerModal>
 	{:else if nonNullish(repoKey) && step === 'review'}
 		<div in:fade>
-			<AutomationCreateConnectReview onback={() => (step = 'init')} {onconfirm} {repoKey} />
+			<RepositoryConnectReview
+				onback={() => (step = 'init')}
+				{onconfirm}
+				{repoKey}
+				{repoReferences}
+			/>
 		</div>
 	{:else}
-		<AutomationCreateConnectForm oncontinue={onConnect} bind:repoUrl />
+		<RepositoryConnectForm oncontinue={onConnect} bind:repoUrlInput bind:repoReferencesInput />
 	{/if}
 </Modal>
 

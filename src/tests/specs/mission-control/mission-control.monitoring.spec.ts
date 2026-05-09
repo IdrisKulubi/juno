@@ -18,7 +18,8 @@ import {
 import {
 	testMissionControlMonitoring,
 	testOrbiterMonitoring,
-	testSatellitesMonitoring
+	testSatellitesMonitoring,
+	testUfoMonitoring
 } from '../../utils/monitoring-tests.utils';
 import { MISSION_CONTROL_WASM_PATH } from '../../utils/setup-tests.utils';
 
@@ -29,6 +30,7 @@ describe('Mission Control > Monitoring', () => {
 	let missionControlId: Principal;
 	let orbiterId: Principal;
 	let satelliteId: Principal;
+	let ufoId: Principal;
 
 	const controller = Ed25519KeyIdentity.generate();
 
@@ -50,7 +52,11 @@ describe('Mission Control > Monitoring', () => {
 
 		actor.setIdentity(controller);
 
-		const { orbiterId: oId, satelliteId: sId } = await setupMissionControlModules({
+		const {
+			orbiterId: oId,
+			satelliteId: sId,
+			ufoId: uId
+		} = await setupMissionControlModules({
 			pic,
 			controller,
 			missionControlId
@@ -58,11 +64,13 @@ describe('Mission Control > Monitoring', () => {
 
 		orbiterId = oId;
 		satelliteId = sId;
+		ufoId = uId;
 
-		const { set_orbiter, set_satellite } = actor;
+		const { set_orbiter, set_satellite, set_ufo } = actor;
 
 		await set_orbiter(orbiterId, []);
 		await set_satellite(satelliteId, []);
+		await set_ufo(ufoId, []);
 	});
 
 	afterAll(async () => {
@@ -73,23 +81,19 @@ describe('Mission Control > Monitoring', () => {
 		it('should throw errors on start monitoring', async () => {
 			const { start_monitoring } = actor;
 
-			await expect(start_monitoring()).rejects.toThrowError(
-				MISSION_CONTROL_ADMIN_CONTROLLER_ERROR_MSG
-			);
+			await expect(start_monitoring()).rejects.toThrow(MISSION_CONTROL_ADMIN_CONTROLLER_ERROR_MSG);
 		});
 
 		it('should throw errors on stop monitoring', async () => {
 			const { stop_monitoring } = actor;
 
-			await expect(stop_monitoring()).rejects.toThrowError(
-				MISSION_CONTROL_ADMIN_CONTROLLER_ERROR_MSG
-			);
+			await expect(stop_monitoring()).rejects.toThrow(MISSION_CONTROL_ADMIN_CONTROLLER_ERROR_MSG);
 		});
 
 		it('should throw errors on update and start monitoring', async () => {
 			const { update_and_start_monitoring } = actor;
 
-			await expect(update_and_start_monitoring({ cycles_config: [] })).rejects.toThrowError(
+			await expect(update_and_start_monitoring({ cycles_config: [] })).rejects.toThrow(
 				MISSION_CONTROL_ADMIN_CONTROLLER_ERROR_MSG
 			);
 		});
@@ -101,13 +105,13 @@ describe('Mission Control > Monitoring', () => {
 				update_and_stop_monitoring({
 					cycles_config: []
 				})
-			).rejects.toThrowError(MISSION_CONTROL_ADMIN_CONTROLLER_ERROR_MSG);
+			).rejects.toThrow(MISSION_CONTROL_ADMIN_CONTROLLER_ERROR_MSG);
 		});
 
 		it('should throw errors on get monitoring status', async () => {
 			const { get_monitoring_status } = actor;
 
-			await expect(get_monitoring_status()).rejects.toThrowError(
+			await expect(get_monitoring_status()).rejects.toThrow(
 				MISSION_CONTROL_ADMIN_CONTROLLER_ERROR_MSG
 			);
 		});
@@ -121,19 +125,19 @@ describe('Mission Control > Monitoring', () => {
 					from: toNullable(),
 					to: toNullable()
 				})
-			).rejects.toThrowError(MISSION_CONTROL_ADMIN_CONTROLLER_ERROR_MSG);
+			).rejects.toThrow(MISSION_CONTROL_ADMIN_CONTROLLER_ERROR_MSG);
 		});
 
 		it('should throw errors on get config', async () => {
 			const { get_config } = actor;
 
-			await expect(get_config()).rejects.toThrowError(MISSION_CONTROL_ADMIN_CONTROLLER_ERROR_MSG);
+			await expect(get_config()).rejects.toThrow(MISSION_CONTROL_ADMIN_CONTROLLER_ERROR_MSG);
 		});
 
 		it('should throw errors on set config', async () => {
 			const { set_config } = actor;
 
-			await expect(set_config([])).rejects.toThrowError(MISSION_CONTROL_ADMIN_CONTROLLER_ERROR_MSG);
+			await expect(set_config([])).rejects.toThrow(MISSION_CONTROL_ADMIN_CONTROLLER_ERROR_MSG);
 		});
 	};
 
@@ -208,6 +212,16 @@ describe('Mission Control > Monitoring', () => {
 			).toBeUndefined();
 		});
 
+		it('should have no ufos settings', async () => {
+			const { list_ufos } = actor;
+
+			const results = await list_ufos();
+
+			expect(
+				results.find(([_, { settings }]) => nonNullish(fromNullable(settings)))
+			).toBeUndefined();
+		});
+
 		it('should fail at configuring monitoring if mission control is not already monitored', async () => {
 			const { update_and_start_monitoring } = actor;
 
@@ -219,12 +233,13 @@ describe('Mission Control > Monitoring', () => {
 							strategy
 						}),
 						orbiters_strategy: toNullable(),
+						ufos_strategy: toNullable(),
 						mission_control_strategy: toNullable()
 					}
 				]
 			};
 
-			await expect(update_and_start_monitoring(config)).rejects.toThrowError(
+			await expect(update_and_start_monitoring(config)).rejects.toThrow(
 				'A strategy for monitoring the missing mission control must be provided.'
 			);
 		});
@@ -237,6 +252,7 @@ describe('Mission Control > Monitoring', () => {
 					{
 						satellites_strategy: toNullable(),
 						orbiters_strategy: toNullable(),
+						ufos_strategy: toNullable(),
 						mission_control_strategy: toNullable(strategy)
 					}
 				]
@@ -270,6 +286,7 @@ describe('Mission Control > Monitoring', () => {
 							strategy
 						}),
 						orbiters_strategy: toNullable(),
+						ufos_strategy: toNullable(),
 						mission_control_strategy: toNullable()
 					}
 				]
@@ -291,6 +308,7 @@ describe('Mission Control > Monitoring', () => {
 							ids: [orbiterId],
 							strategy
 						}),
+						ufos_strategy: toNullable(),
 						mission_control_strategy: toNullable()
 					}
 				]
@@ -299,6 +317,28 @@ describe('Mission Control > Monitoring', () => {
 			await update_and_start_monitoring(config);
 
 			await testOrbiterMonitoring({ expectedEnabled: true, expectedStrategy: strategy, actor });
+		});
+
+		it('should config and start monitoring for ufo', async () => {
+			const { update_and_start_monitoring } = actor;
+
+			const config: MissionControlDid.MonitoringStartConfig = {
+				cycles_config: [
+					{
+						satellites_strategy: toNullable(),
+						orbiters_strategy: toNullable(),
+						ufos_strategy: toNullable({
+							ids: [ufoId],
+							strategy
+						}),
+						mission_control_strategy: toNullable()
+					}
+				]
+			};
+
+			await update_and_start_monitoring(config);
+
+			await testUfoMonitoring({ expectedEnabled: true, expectedStrategy: strategy, actor });
 		});
 
 		it('should fail at configuring monitoring for unknown satellite', async () => {
@@ -312,12 +352,13 @@ describe('Mission Control > Monitoring', () => {
 							strategy
 						}),
 						orbiters_strategy: toNullable(),
+						ufos_strategy: toNullable(),
 						mission_control_strategy: toNullable()
 					}
 				]
 			};
 
-			await expect(update_and_start_monitoring(config)).rejects.toThrowError(
+			await expect(update_and_start_monitoring(config)).rejects.toThrow(
 				`Satellite ${satelliteIdMock.toText()} not found. Strategy cannot be saved.`
 			);
 		});
@@ -333,13 +374,36 @@ describe('Mission Control > Monitoring', () => {
 							ids: [satelliteId],
 							strategy
 						}),
+						ufos_strategy: toNullable(),
 						mission_control_strategy: toNullable()
 					}
 				]
 			};
 
-			await expect(update_and_start_monitoring(config)).rejects.toThrowError(
+			await expect(update_and_start_monitoring(config)).rejects.toThrow(
 				`Orbiter ${satelliteId.toText()} not found. Strategy cannot be saved.`
+			);
+		});
+
+		it('should fail at configuring monitoring for unknown ufo', async () => {
+			const { update_and_start_monitoring } = actor;
+
+			const config: MissionControlDid.MonitoringStartConfig = {
+				cycles_config: [
+					{
+						satellites_strategy: toNullable(),
+						orbiters_strategy: toNullable(),
+						ufos_strategy: toNullable({
+							ids: [satelliteId],
+							strategy
+						}),
+						mission_control_strategy: toNullable()
+					}
+				]
+			};
+
+			await expect(update_and_start_monitoring(config)).rejects.toThrow(
+				`UFO ${satelliteId.toText()} not found. Strategy cannot be saved.`
 			);
 		});
 
@@ -351,12 +415,13 @@ describe('Mission Control > Monitoring', () => {
 					{
 						satellite_ids: toNullable([satelliteIdMock]),
 						orbiter_ids: toNullable(),
+						ufo_ids: toNullable(),
 						try_mission_control: toNullable()
 					}
 				]
 			};
 
-			await expect(update_and_stop_monitoring(config)).rejects.toThrowError(
+			await expect(update_and_stop_monitoring(config)).rejects.toThrow(
 				`Satellite ${satelliteIdMock.toText()} not found. Monitoring cannot be disabled.`
 			);
 		});
@@ -369,13 +434,33 @@ describe('Mission Control > Monitoring', () => {
 					{
 						satellite_ids: toNullable(),
 						orbiter_ids: toNullable([satelliteId]),
+						ufo_ids: toNullable(),
 						try_mission_control: toNullable()
 					}
 				]
 			};
 
-			await expect(update_and_stop_monitoring(config)).rejects.toThrowError(
+			await expect(update_and_stop_monitoring(config)).rejects.toThrow(
 				`Orbiter ${satelliteId.toText()} not found. Monitoring cannot be disabled.`
+			);
+		});
+
+		it('should fail at stopping monitoring for unknown ufo', async () => {
+			const { update_and_stop_monitoring } = actor;
+
+			const config: MissionControlDid.MonitoringStopConfig = {
+				cycles_config: [
+					{
+						satellite_ids: toNullable(),
+						orbiter_ids: toNullable(),
+						ufo_ids: toNullable([satelliteId]),
+						try_mission_control: toNullable()
+					}
+				]
+			};
+
+			await expect(update_and_stop_monitoring(config)).rejects.toThrow(
+				`UFO ${satelliteId.toText()} not found. Monitoring cannot be disabled.`
 			);
 		});
 
@@ -387,12 +472,13 @@ describe('Mission Control > Monitoring', () => {
 					{
 						satellite_ids: toNullable(),
 						orbiter_ids: toNullable(),
+						ufo_ids: toNullable(),
 						try_mission_control: toNullable(true)
 					}
 				]
 			};
 
-			await expect(update_and_stop_monitoring(config)).rejects.toThrowError(
+			await expect(update_and_stop_monitoring(config)).rejects.toThrow(
 				'Mission control monitoring cannot be disabled while some modules remain active.'
 			);
 		});
@@ -405,6 +491,7 @@ describe('Mission Control > Monitoring', () => {
 					{
 						satellite_ids: toNullable([satelliteId]),
 						orbiter_ids: toNullable(),
+						ufo_ids: toNullable(),
 						try_mission_control: toNullable()
 					}
 				]
@@ -424,6 +511,27 @@ describe('Mission Control > Monitoring', () => {
 					{
 						satellite_ids: toNullable(),
 						orbiter_ids: toNullable([orbiterId]),
+						ufo_ids: toNullable(),
+						try_mission_control: toNullable()
+					}
+				]
+			};
+
+			await update_and_stop_monitoring(config);
+
+			await testSatellitesMonitoring({ expectedEnabled: false, expectedStrategy: strategy, actor });
+			await testOrbiterMonitoring({ expectedEnabled: false, expectedStrategy: strategy, actor });
+		});
+
+		it('should stop monitoring for ufo', async () => {
+			const { update_and_stop_monitoring } = actor;
+
+			const config: MissionControlDid.MonitoringStopConfig = {
+				cycles_config: [
+					{
+						satellite_ids: toNullable(),
+						orbiter_ids: toNullable(),
+						ufo_ids: toNullable([ufoId]),
 						try_mission_control: toNullable()
 					}
 				]
@@ -443,6 +551,7 @@ describe('Mission Control > Monitoring', () => {
 					{
 						satellite_ids: toNullable(),
 						orbiter_ids: toNullable(),
+						ufo_ids: toNullable(),
 						try_mission_control: toNullable(true)
 					}
 				]
@@ -520,6 +629,7 @@ describe('Mission Control > Monitoring', () => {
 					{
 						satellites_strategy: toNullable(),
 						orbiters_strategy: toNullable(),
+						ufos_strategy: toNullable(),
 						mission_control_strategy: toNullable(updateStrategy)
 					}
 				]
@@ -545,6 +655,7 @@ describe('Mission Control > Monitoring', () => {
 							strategy: updateStrategy
 						}),
 						orbiters_strategy: toNullable(),
+						ufos_strategy: toNullable(),
 						mission_control_strategy: toNullable()
 					}
 				]
@@ -568,6 +679,33 @@ describe('Mission Control > Monitoring', () => {
 						satellites_strategy: toNullable(),
 						orbiters_strategy: toNullable({
 							ids: [orbiterId],
+							strategy: updateStrategy
+						}),
+						ufos_strategy: toNullable(),
+						mission_control_strategy: toNullable()
+					}
+				]
+			};
+
+			await update_and_start_monitoring(config);
+
+			await testOrbiterMonitoring({
+				expectedEnabled: true,
+				expectedStrategy: updateStrategy,
+				actor
+			});
+		});
+
+		it('should update config for ufo', async () => {
+			const { update_and_start_monitoring } = actor;
+
+			const config: MissionControlDid.MonitoringStartConfig = {
+				cycles_config: [
+					{
+						satellites_strategy: toNullable(),
+						orbiters_strategy: toNullable(),
+						ufos_strategy: toNullable({
+							ids: [ufoId],
 							strategy: updateStrategy
 						}),
 						mission_control_strategy: toNullable()

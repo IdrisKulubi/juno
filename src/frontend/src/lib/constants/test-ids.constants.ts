@@ -13,6 +13,9 @@ export const testIds = {
 		actions: 'btn-open-actions'
 	},
 	createSatellite: {
+		continueToMetadata: 'btn-continue-metadata',
+		continueToOptions: 'btn-continue-options',
+		continueToReview: 'btn-continue-review',
 		create: 'btn-create-satellite',
 		input: 'input-satellite-name',
 		website: 'input-radio-satellite-website',
@@ -33,6 +36,13 @@ export const testIds = {
 		launch: 'btn-launch-analytics',
 		create: 'btn-create-analytics',
 		close: 'btn-close-analytics-wizard'
+	},
+	createUfo: {
+		navLink: 'link-ufo-dashboard',
+		launch: 'btn-launch-ufo',
+		create: 'btn-create-ufo',
+		close: 'btn-close-ufo-wizard',
+		input: 'input-ufo-name'
 	},
 	wizard: {
 		closeInsufficientFunds: 'btn-close-insufficient-funds'

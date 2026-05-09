@@ -12,7 +12,7 @@ pub mod state {
     use junobuild_shared::rate::types::{RateConfig, RateTokens};
     use junobuild_shared::types::memory::Memory;
     use junobuild_shared::types::state::{
-        Controllers, Metadata, SegmentId, SegmentKind, Timestamp,
+        AccessKeys, Metadata, SegmentId, SegmentKind, Timestamp, Version,
     };
     use junobuild_shared::types::state::{MissionControlId, UserId};
     use junobuild_storage::types::state::StorageHeapState;
@@ -57,12 +57,13 @@ pub mod state {
         #[deprecated(note = "Deprecated. Use stable memory instead.")]
         pub payments: IcpPayments,
         pub invitation_codes: InvitationCodes,
-        pub controllers: Controllers,
+        pub controllers: AccessKeys,
         pub factory_fees: Option<FactoryFees>,
         pub factory_rates: Option<FactoryRates>,
         pub storage: StorageHeapState,
         pub authentication: Option<AuthenticationHeapState>,
         pub releases_metadata: ReleasesMetadata,
+        pub account_config: Option<AccountConfig>,
     }
 
     #[derive(CandidType, Serialize, Deserialize, Clone)]
@@ -151,13 +152,26 @@ pub mod state {
         // For historical reasons, MissionControl is not stored in the segments stable tree
         // but within the Account structure
         Orbiter,
+        Ufo,
+    }
+
+    // On Apr. 4, 2026, someone exploited the free tier to spin up free canisters.
+    // They created roughly 60-70 identities to spin up the same number of canisters.
+    // The rate limiter worked as expected — they had to wait a few minutes before creating more users.
+    // That's why we introduced an account config to control the initial credits assigned to new users.
+    #[derive(CandidType, Serialize, Deserialize, Clone)]
+    pub struct AccountConfig {
+        pub init_credits: Tokens,
+        pub version: Option<Version>,
+        pub created_at: Option<Timestamp>,
+        pub updated_at: Option<Timestamp>,
     }
 }
 
 pub mod interface {
     use crate::types::state::{Account, StorableSegmentKind};
-    use candid::CandidType;
-    use ic_ledger_types::Tokens;
+    use candid::{CandidType, Principal};
+    use ic_ledger_types::{BlockIndex, Tokens};
     use junobuild_auth::delegation::types::{
         OpenIdGetDelegationArgs, OpenIdPrepareDelegationArgs, PrepareDelegationError,
         PreparedDelegation,
@@ -165,7 +179,7 @@ pub mod interface {
     use junobuild_auth::state::types::config::AuthenticationConfig;
     use junobuild_cdn::proposals::ProposalId;
     use junobuild_shared::ledger::types::cycles::CyclesTokens;
-    use junobuild_shared::types::state::{Metadata, SegmentId};
+    use junobuild_shared::types::state::{Metadata, SegmentId, Version};
     use junobuild_storage::types::config::StorageConfig;
     use serde::{Deserialize, Serialize};
 
@@ -234,6 +248,23 @@ pub mod interface {
     pub struct FeesArgs {
         pub fee_cycles: CyclesTokens,
         pub fee_icp: Option<Tokens>,
+    }
+
+    #[derive(CandidType, Serialize, Deserialize, Clone)]
+    pub struct SetAccountConfig {
+        pub init_credits: Tokens,
+        pub version: Option<Version>,
+    }
+
+    #[derive(CandidType, Deserialize)]
+    pub struct WithdrawArgs {
+        pub to: Principal,
+    }
+
+    #[derive(CandidType, Deserialize)]
+    pub struct WithdrawResult {
+        pub block_index: BlockIndex,
+        pub amount: u64,
     }
 }
 

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { nonNullish, notEmptyString } from '@dfinity/utils';
+	import type { Nullish } from '@dfinity/zod-schemas';
 	import { fade } from 'svelte/transition';
 	import SignInActions from '$lib/components/auth/sign-in/SignInActions.svelte';
 	import CliAdd from '$lib/components/cli/CliAdd.svelte';
@@ -10,16 +11,16 @@
 	import { authSignedIn } from '$lib/derived/auth.derived';
 	import { missionControlId } from '$lib/derived/console/account.mission-control.derived';
 	import { sortedSatellites } from '$lib/derived/satellites.derived';
+	import { sortedUfos } from '$lib/derived/ufos.derived';
 	import { onIntersection } from '$lib/directives/intersection.directives';
 	import { i18n } from '$lib/stores/app/i18n.store';
 	import { onLayoutTitleIntersection } from '$lib/stores/app/layout-intersecting.store';
-	import type { Option } from '$lib/types/utils';
 
 	interface Props {
 		data: {
-			redirect_uri: Option<string>;
-			principal: Option<string>;
-			profile: Option<string>;
+			redirect_uri: Nullish<string>;
+			principal: Nullish<string>;
+			profile: Nullish<string>;
 		};
 	}
 
@@ -34,7 +35,7 @@
 	{#if nonNullish(redirect_uri) && nonNullish(principal) && notEmptyString(redirect_uri) && notEmptyString(principal)}
 		{#if $authSignedIn}
 			<MissionControlLoadingGuard>
-				<MetadataLoader satellites={$sortedSatellites}>
+				<MetadataLoader satellites={$sortedSatellites} ufos={$sortedUfos}>
 					<div in:fade>
 						<CliAdd missionControlId={$missionControlId} {principal} {profile} {redirect_uri} />
 					</div>

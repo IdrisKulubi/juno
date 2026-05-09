@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { notEmptyString } from '@dfinity/utils';
+	import { nonNullish } from '@dfinity/utils';
 	import { circOut, quintOut } from 'svelte/easing';
 	import { slide, fade } from 'svelte/transition';
 	import { page } from '$app/state';
@@ -13,19 +13,24 @@
 	import IconSatellite from '$lib/components/icons/IconSatellite.svelte';
 	import IconStorage from '$lib/components/icons/IconStorage.svelte';
 	import IconTelescope from '$lib/components/icons/IconTelescope.svelte';
+	import IconUfo from '$lib/components/icons/IconUfo.svelte';
 	import IconUpgradeDock from '$lib/components/icons/IconUpgradeDock.svelte';
 	import Menu from '$lib/components/ui/Menu.svelte';
 	import { menuCollapsed, menuExpanded } from '$lib/derived/app/layout-menu.derived';
-	import { pageSatelliteId } from '$lib/derived/app/page.derived.svelte.js';
+	import { pageId } from '$lib/derived/app/page.derived.svelte.js';
 	import { isSatelliteRoute } from '$lib/derived/app/route.derived.svelte.js';
 	import { i18n } from '$lib/stores/app/i18n.store';
 	import { isRouteSelected } from '$lib/utils/nav.utils';
 
 	let routeId: string | null = $derived(page.route.id);
 
-	let satelliteId: string = $derived($pageSatelliteId ?? '');
-
-	let queryParam = $derived(notEmptyString(satelliteId) ? `/?s=${satelliteId}` : '');
+	let queryParam = $derived(
+		nonNullish($pageId)
+			? 'ufoId' in $pageId
+				? `/?u=${$pageId.ufoId}`
+				: `/?s=${$pageId.satelliteId}`
+			: ''
+	);
 </script>
 
 <Menu>
@@ -116,6 +121,17 @@
 		{/if}
 
 		<div>
+			<a
+				class="link not-themed"
+				class:collapsed={$menuCollapsed}
+				class:selected={isRouteSelected({ routeId, path: 'ufo' })}
+				href={`/ufo${queryParam}`}
+				role="menuitem"
+			>
+				<IconUfo size="24px" />
+				<span>{$i18n.ufo.title}</span>
+			</a>
+
 			<a
 				class="link not-themed"
 				class:collapsed={$menuCollapsed}

@@ -17,6 +17,7 @@ describe('Mission Control > Set / Unset', () => {
 
 	let orbiterId: Principal;
 	let satelliteId: Principal;
+	let ufoId: Principal;
 
 	const controller = Ed25519KeyIdentity.generate();
 
@@ -38,7 +39,11 @@ describe('Mission Control > Set / Unset', () => {
 
 		actor.setIdentity(controller);
 
-		const { orbiterId: oId, satelliteId: sId } = await setupMissionControlModules({
+		const {
+			orbiterId: oId,
+			satelliteId: sId,
+			ufoId: uId
+		} = await setupMissionControlModules({
 			pic,
 			controller,
 			missionControlId
@@ -46,6 +51,7 @@ describe('Mission Control > Set / Unset', () => {
 
 		orbiterId = oId;
 		satelliteId = sId;
+		ufoId = uId;
 	});
 
 	afterAll(async () => {
@@ -56,7 +62,7 @@ describe('Mission Control > Set / Unset', () => {
 		it('should throw errors on set orbiter', async () => {
 			const { set_orbiter } = actor;
 
-			await expect(set_orbiter(orbiterId, [])).rejects.toThrowError(
+			await expect(set_orbiter(orbiterId, [])).rejects.toThrow(
 				MISSION_CONTROL_ADMIN_CONTROLLER_ERROR_MSG
 			);
 		});
@@ -64,7 +70,7 @@ describe('Mission Control > Set / Unset', () => {
 		it('should throw errors on unset orbiter', async () => {
 			const { unset_orbiter } = actor;
 
-			await expect(unset_orbiter(orbiterId)).rejects.toThrowError(
+			await expect(unset_orbiter(orbiterId)).rejects.toThrow(
 				MISSION_CONTROL_ADMIN_CONTROLLER_ERROR_MSG
 			);
 		});
@@ -72,7 +78,7 @@ describe('Mission Control > Set / Unset', () => {
 		it('should throw errors on set satellite', async () => {
 			const { set_satellite } = actor;
 
-			await expect(set_satellite(satelliteId, [])).rejects.toThrowError(
+			await expect(set_satellite(satelliteId, [])).rejects.toThrow(
 				MISSION_CONTROL_ADMIN_CONTROLLER_ERROR_MSG
 			);
 		});
@@ -80,9 +86,21 @@ describe('Mission Control > Set / Unset', () => {
 		it('should throw errors on unset satellite', async () => {
 			const { unset_satellite } = actor;
 
-			await expect(unset_satellite(satelliteId)).rejects.toThrowError(
+			await expect(unset_satellite(satelliteId)).rejects.toThrow(
 				MISSION_CONTROL_ADMIN_CONTROLLER_ERROR_MSG
 			);
+		});
+
+		it('should throw errors on set ufo', async () => {
+			const { set_ufo } = actor;
+
+			await expect(set_ufo(ufoId, [])).rejects.toThrow(MISSION_CONTROL_ADMIN_CONTROLLER_ERROR_MSG);
+		});
+
+		it('should throw errors on unset ufo', async () => {
+			const { unset_ufo } = actor;
+
+			await expect(unset_ufo(ufoId)).rejects.toThrow(MISSION_CONTROL_ADMIN_CONTROLLER_ERROR_MSG);
 		});
 	};
 
@@ -177,6 +195,43 @@ describe('Mission Control > Set / Unset', () => {
 			await unset_satellite(satelliteId);
 
 			const results = await list_satellites();
+
+			expect(results).toHaveLength(0);
+		});
+
+		it('should have no ufos set', async () => {
+			const { list_ufos } = actor;
+
+			const results = await list_ufos();
+
+			expect(results).toHaveLength(0);
+		});
+
+		it('should set an ufo', async () => {
+			const { set_ufo, list_ufos } = actor;
+
+			const ufo = await set_ufo(ufoId, ['Hello']);
+
+			expect(ufo.ufo_id.toText()).toEqual(ufoId.toText());
+			expect(ufo.created_at).toBeGreaterThan(0n);
+			expect(ufo.updated_at).toBeGreaterThan(0n);
+
+			const results = await list_ufos();
+
+			expect(results).toHaveLength(1);
+
+			expect(results[0][0].toText()).toEqual(ufoId.toText());
+			expect(results[0][1].ufo_id.toText()).toEqual(ufoId.toText());
+			expect(results[0][1].created_at).toBeGreaterThan(0n);
+			expect(results[0][1].updated_at).toBeGreaterThan(0n);
+		});
+
+		it('should unset an ufo', async () => {
+			const { unset_ufo, list_ufos } = actor;
+
+			await unset_ufo(ufoId);
+
+			const results = await list_ufos();
 
 			expect(results).toHaveLength(0);
 		});

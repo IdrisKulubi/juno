@@ -1,8 +1,12 @@
 <script lang="ts">
+	import { nonNullish } from '@dfinity/utils';
 	import { Principal } from '@icp-sdk/core/principal';
-	import type { Snippet } from 'svelte';
 	import InputCanisterId from '$lib/components/app/core/InputCanisterId.svelte';
+	import IconLink from '$lib/components/icons/IconLink.svelte';
+	import AttachSegmentInfo from '$lib/components/modules/attach-detach/AttachSegmentInfo.svelte';
+	import CheckboxInline from '$lib/components/ui/CheckboxInline.svelte';
 	import Popover from '$lib/components/ui/Popover.svelte';
+	import Value from '$lib/components/ui/Value.svelte';
 	import { isBusy } from '$lib/derived/app/busy.derived';
 	import { authIdentity } from '$lib/derived/auth.derived';
 	import { missionControlId } from '$lib/derived/console/account.mission-control.derived';
@@ -12,15 +16,9 @@
 	import { toasts } from '$lib/stores/app/toasts.store';
 	import { i18nCapitalize, i18nFormat } from '$lib/utils/i18n.utils';
 
-	interface Props {
-		segment: 'satellite' | 'orbiter';
-		visible: boolean | undefined;
-		title?: Snippet;
-		input?: Snippet;
-		onsuccess: () => void;
-	}
+	let visible = $state(false);
 
-	let { segment, visible = $bindable(), title, input, onsuccess }: Props = $props();
+	let segment = $state<'satellite' | 'orbiter' | 'ufo'>('satellite');
 
 	let validConfirm = $state(false);
 	let canisterId = $state('');
@@ -41,7 +39,8 @@
 		const { result } = await attachSegment({
 			segmentId: Principal.fromText(canisterId),
 			segment,
-			missionControlId: $missionControlId,
+			missionControlId:
+				nonNullish($missionControlId) && attachToMissionControl ? $missionControlId : null,
 			identity: $authIdentity
 		});
 
@@ -52,8 +51,6 @@
 		}
 
 		visible = false;
-
-		onsuccess();
 
 		toasts.success({
 			text: i18nCapitalize(
@@ -66,17 +63,47 @@
 			)
 		});
 	};
+
+	let attachToMissionControl = $state(true);
 </script>
+
+<button class="primary" aria-label={$i18n.core.attach} onclick={() => (visible = true)}
+	><IconLink /></button
+>
 
 <Popover backdrop="dark" center bind:visible>
 	<form class="container" onsubmit={handleSubmit}>
-		<h3>{@render title?.()}</h3>
+		<h3>{$i18n.launchpad.attach_title}</h3>
+
+		<p>{$i18n.launchpad.attach_description}</p>
+
+		<div>
+			<Value>
+				{#snippet label()}
+					{$i18n.cli.module}
+				{/snippet}
+
+				<select bind:value={segment}>
+					<option value="satellite">{$i18n.satellites.satellite}</option>
+					<option value="orbiter">{$i18n.analytics.orbiter} ({$i18n.analytics.title})</option>
+					<option value="ufo">{$i18n.ufo.title}</option>
+				</select>
+			</Value>
+		</div>
 
 		<InputCanisterId disabled={$isBusy} bind:canisterId bind:valid={validConfirm}>
 			{#snippet label()}
-				{@render input?.()}
+				{$i18n.launchpad.attach_id}
 			{/snippet}
 		</InputCanisterId>
+
+		{#if nonNullish($missionControlId)}
+			<CheckboxInline bind:checked={attachToMissionControl}>
+				<span>{$i18n.launchpad.attach_to_mission_control}</span>
+			</CheckboxInline>
+		{/if}
+
+		<AttachSegmentInfo />
 
 		<button class="submit" disabled={$isBusy || !validConfirm} type="submit">
 			{$i18n.core.submit}
@@ -91,5 +118,9 @@
 
 	label {
 		margin: var(--padding-1_5x) 0 0;
+	}
+
+	span {
+		font-size: var(--font-size-small);
 	}
 </style>

@@ -1,14 +1,16 @@
 import type { ConsoleDid, ICDid, MissionControlDid, OrbiterDid, SatelliteDid } from '$declarations';
 import type { SelectedToken, SelectedWallet } from '$lib/schemas/wallet.schema';
 import type { AddAccessKeyParams, AddAccessKeyResult } from '$lib/types/access-keys';
+import type { OpenIdAuthProvider } from '$lib/types/auth';
 import type { CanisterInfo, CanisterSegmentWithLabel, CanisterSettings } from '$lib/types/canister';
 import type { MissionControlId } from '$lib/types/mission-control';
 import type { OrbiterSatelliteConfigEntry } from '$lib/types/orbiter';
 import type { ProposalRecord } from '$lib/types/proposals';
 import type { Satellite, SatelliteIdText } from '$lib/types/satellite';
+import type { Ufo } from '$lib/types/ufo';
 import type { User as UserListed } from '$lib/types/user';
 import type { UserUsageCollection } from '$lib/types/user-usage';
-import type { Option } from '$lib/types/utils';
+import type { Nullish } from '@dfinity/zod-schemas';
 import type { Principal } from '@icp-sdk/core/principal';
 import type { BuildType } from '@junobuild/admin';
 
@@ -17,6 +19,10 @@ export interface JunoModalWithSatellite {
 }
 
 export type JunoModalTopUpSatelliteDetail = JunoModalWithSatellite;
+
+export interface JunoModalTopUpUfoDetail {
+	ufo: Ufo;
+}
 
 export interface JunoModalTopUpMissionControlDetail {}
 
@@ -33,13 +39,13 @@ export type JunoModalUpgradeSatelliteDetail = JunoModalUpgradeDetail &
 export interface JunoModalCreateSegmentDetail {
 	fee: ConsoleDid.FactoryFee;
 	monitoringEnabled: boolean;
-	monitoringConfig: Option<MissionControlDid.MonitoringConfig>;
+	monitoringConfig: Nullish<MissionControlDid.MonitoringConfig>;
 }
 
 export interface JunoModalCustomDomainDetail {
 	editDomainName?: string;
 	satellite: Satellite;
-	config: SatelliteDid.AuthenticationConfig | undefined;
+	config: SatelliteDid.AuthenticationConfig | null | undefined;
 }
 
 export interface JunoModalCycles {
@@ -91,10 +97,10 @@ export interface JunoModalEditAuthConfigDetailCore {
 export type JunoModalEditAuthConfigDetailType =
 	| JunoModalEditAuthConfigDetailCore
 	| JunoModalEditAuthConfigDetailII
-	| JunoModalEditAuthConfigDetailGoogle;
+	| JunoModalEditAuthConfigDetailOpenId;
 
-export interface JunoModalEditAuthConfigDetailGoogle {
-	google: null;
+export interface JunoModalEditAuthConfigDetailOpenId {
+	openid: { provider: OpenIdAuthProvider };
 }
 
 export interface JunoModalEditAuthConfigDetailII {
@@ -131,11 +137,17 @@ export interface JunoModalWalletDetail {
 
 export type JunoModalConvertIcpToCyclesDetails = Pick<JunoModalWalletDetail, 'selectedWallet'>;
 
+export interface JunoModalAutomationConfigDetail extends JunoModalWithSatellite {
+	automationConfig: SatelliteDid.AutomationConfig;
+	providerConfig: SatelliteDid.OpenIdAutomationProviderConfig;
+}
+
 export type JunoModalDetail =
 	| JunoModalUpgradeSatelliteDetail
 	| JunoModalUpgradeDetail
 	| JunoModalShowMonitoringDetail
 	| JunoModalTopUpSatelliteDetail
+	| JunoModalTopUpUfoDetail
 	| JunoModalTopUpMissionControlDetail
 	| JunoModalCreateSegmentDetail
 	| JunoModalCustomDomainDetail
@@ -150,12 +162,14 @@ export type JunoModalDetail =
 	| JunoModalChangeDetail
 	| JunoModalCdnUpgradeDetail
 	| JunoModalEditAuthConfigDetail
-	| JunoModalWalletDetail;
+	| JunoModalWalletDetail
+	| JunoModalAutomationConfigDetail;
 
 export interface JunoModal<T extends JunoModalDetail> {
 	type:
 		| 'create_satellite'
 		| 'create_orbiter'
+		| 'create_ufo'
 		| 'create_mission_control'
 		| 'delete_satellite'
 		| 'delete_orbiter'
@@ -165,6 +179,7 @@ export interface JunoModal<T extends JunoModalDetail> {
 		| 'topup_satellite'
 		| 'topup_mission_control'
 		| 'topup_orbiter'
+		| 'topup_ufo'
 		| 'add_custom_domain'
 		| 'restore_snapshot'
 		| 'create_snapshot'
@@ -185,6 +200,8 @@ export interface JunoModal<T extends JunoModalDetail> {
 		| 'upgrade_satellite_with_cdn'
 		| 'convert_icp_to_cycles'
 		| 'reconcile_out_of_sync_segments'
-		| 'create_automation';
+		| 'create_automation'
+		| 'edit_automation_keys_config'
+		| 'edit_automation_connect_repository_config';
 	detail?: T;
 }
