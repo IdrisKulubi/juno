@@ -127,7 +127,8 @@
 		"environment": "运行环境",
 		"tags": "标签",
 		"edit_details": "编辑详情",
-		"tags_placeholder": "逗号分隔或每行一个，留空则不添加标签。"
+		"tags_placeholder": "逗号分隔或每行一个，留空则不添加标签。",
+		"maintenance": "Juno 目前处于<strong>维护模式</strong>，不再积极开发。"
 	},
 	"canisters": {
 		"top_up": "充值",
@@ -320,7 +321,6 @@
 		"commander": "指挥官",
 		"spacebuilder": "太空建造者",
 		"captain": "船长",
-		"getting_started_credits": "欢迎来到 Juno！在 <a href=\"https://discord.gg/wHZ57Z2RAG\" rel=\"external noopener noreferrer\" target=\"_blank\"><strong>Discord</strong></a> 上联系我们，免费开始您的旅程。",
 		"attach_title": "附加模块",
 		"attach_description": "将现有的卫星、轨道器或 UFO 连接到您的控制台。",
 		"attach_id": "输入 ID",

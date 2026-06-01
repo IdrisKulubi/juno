@@ -12,6 +12,9 @@
   <a href="https://discord.gg/wHZ57Z2RAG"><img src="https://dcbadge.limes.pink/api/server/https://discord.gg/wHZ57Z2RAG?style=flat-square" alt="Discord" /></a>
 </p>
 
+> [!IMPORTANT]  
+> Juno is in **maintenance** and not actively developed anymore. Do not use it for anything serious.
+
 ## ⭐️ Description
 
 [Juno] is a platform for hosting static websites, building web applications, and running serverless functions with the privacy and control of self-hosting.
@@ -145,5 +148,3 @@ Have questions, comments, or feedback? Join our [Discord](https://discord.gg/wHZ
 ## 💬 Contact
 
 Find us on X/Twitter at [@junobuild](https://twitter.com/junobuild) or email us at [hi@juno.build](mailto://hi@juno.build).
-
-[juno]: https://juno.build

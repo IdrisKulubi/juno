@@ -130,6 +130,7 @@ interface I18nCore {
 	tags: string;
 	edit_details: string;
 	tags_placeholder: string;
+	maintenance: string;
 }
 
 interface I18nCanisters {
@@ -326,7 +327,6 @@ interface I18nLaunchpad {
 	commander: string;
 	spacebuilder: string;
 	captain: string;
-	getting_started_credits: string;
 	attach_title: string;
 	attach_description: string;
 	attach_id: string;
